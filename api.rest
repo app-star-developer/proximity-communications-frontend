@@ -1,0 +1,34 @@
+
+
+POST https://proximity-communications-216192893907.europe-west1.run.app/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "tenant": "test2",
+    "email": "testuser2@mail.com",
+    "password": "testuser2"
+}
+
+#####
+
+POST http://localhost:3000/api/v1/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@example.com",
+    "password": "SecurePass123!"
+}
+
+
+#####
+
+GET http://localhost:3000/api/v1/auth/accessible-tenants
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlYjJkMDQxYS1mMDg5LTQ4YWEtYTkwYy1hYmQ4ZjFjZmZhZTMiLCJ0ZW5hbnRJZCI6IiIsInNlc3Npb25JZCI6IjRjMmIyYWQxLWI4YzYtNDY2MS04ZjA4LTgwMWE1N2MyZGE2ZCIsInJvbGVzIjpbInN1cGVydXNlciJdLCJpc3MiOiJwcm94aW1pdHktY29tbXVuaWNhdGlvbnMtc2VydmVyIiwiYXVkIjoicHJveGltaXR5LWNsaWVudHMiLCJpYXQiOjE3NjQzMTU3NTEsImV4cCI6MTc2NDM1ODk1MX0.qLcOoNn70A68L4S8B5Y6x6Kudh-6YC10c7JyMUqYDgs
+
+
+#####
+
+GET http://localhost:3000/api/v1/users/me
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlYjJkMDQxYS1mMDg5LTQ4YWEtYTkwYy1hYmQ4ZjFjZmZhZTMiLCJ0ZW5hbnRJZCI6IiIsInNlc3Npb25JZCI6IjRjMmIyYWQxLWI4YzYtNDY2MS04ZjA4LTgwMWE1N2MyZGE2ZCIsInJvbGVzIjpbInN1cGVydXNlciJdLCJpc3MiOiJwcm94aW1pdHktY29tbXVuaWNhdGlvbnMtc2VydmVyIiwiYXVkIjoicHJveGltaXR5LWNsaWVudHMiLCJpYXQiOjE3NjQzMTU3NTEsImV4cCI6MTc2NDM1ODk1MX0.qLcOoNn70A68L4S8B5Y6x6Kudh-6YC10c7JyMUqYDgs
