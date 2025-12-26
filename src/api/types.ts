@@ -145,6 +145,7 @@ export interface CreateVenueRequest {
 	externalId?: string;
 	status?: "draft" | "active" | "inactive";
 	metadata?: Record<string, unknown>;
+	ownerEmail?: string; // Optional: triggers owner account creation
 }
 
 export interface Venue extends CreateVenueRequest {
@@ -152,6 +153,7 @@ export interface Venue extends CreateVenueRequest {
 	tenantId: string;
 	createdAt: string;
 	updatedAt: string;
+	ownerCreationInitiated?: boolean; // Indicates owner account creation started
 }
 
 export interface VenueListResponse {
@@ -438,3 +440,272 @@ export interface CreateCampaignRequest {
 }
 
 export interface UpdateCampaignRequest extends Partial<CreateCampaignRequest> {}
+
+// Campaign Notification Configuration Types
+export interface CampaignNotificationActionButton {
+	label: string;
+	action: string;
+}
+
+export interface CampaignNotificationConfig {
+	id: string;
+	campaignId: string;
+	venueId?: string | null; // null for default config, venueId for per-venue override
+	title: string;
+	body?: string | null;
+	deepLinkUrl?: string | null;
+	imageUrl?: string | null;
+	actionButtons?: CampaignNotificationActionButton[] | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface CampaignNotificationConfigResponse {
+	default: CampaignNotificationConfig | null;
+	venueOverrides: CampaignNotificationConfig[];
+}
+
+export interface CreateCampaignNotificationConfigRequest {
+	title: string;
+	body?: string;
+	deepLinkUrl?: string;
+	imageUrl?: string;
+	actionButtons?: CampaignNotificationActionButton[];
+	venueId?: string; // Optional: if provided, creates a per-venue override
+}
+
+export interface UpdateCampaignNotificationConfigRequest {
+	title?: string;
+	body?: string | null;
+	deepLinkUrl?: string | null;
+	imageUrl?: string | null;
+	actionButtons?: CampaignNotificationActionButton[] | null;
+}
+
+// Audience Types
+export interface AudienceMetricsResponse {
+	totalDevices: number;
+	activeUsers: {
+		last7Days: number;
+		last30Days: number;
+	};
+}
+
+export interface AudienceGrowthDataPoint {
+	date: string;
+	count: number;
+}
+
+export interface AudienceGrowthResponse {
+	data: AudienceGrowthDataPoint[];
+}
+
+export interface Device {
+	id: string;
+	radarUserId?: string;
+	name?: string;
+	email?: string;
+	expoPushToken?: string;
+	metadata?: Record<string, unknown>;
+	firstSeen?: string;
+	lastSeen?: string;
+	eventCount: number;
+	campaignsEngaged: string[];
+	venuesEngaged: string[];
+}
+
+export interface AudienceDevicesResponse {
+	devices: Device[];
+	pagination: {
+		limit: number;
+		offset: number;
+		total: number;
+	};
+}
+
+export interface DeviceEngagement {
+	firstSeen?: string;
+	lastSeen?: string;
+	totalEvents: number;
+	campaigns: Array<{
+		campaignId: string;
+		eventCount: number;
+	}>;
+	venues: Array<{
+		venueId: string;
+		eventCount: number;
+	}>;
+	eventsByType: Array<{
+		eventType: string;
+		count: number;
+	}>;
+}
+
+export interface AudienceDeviceDetailsResponse {
+	device: Device & {
+		createdAt: string;
+		updatedAt: string;
+	};
+	engagement: DeviceEngagement;
+}
+
+export interface AudienceSegmentationResponse {
+	byCampaign: Array<{
+		campaignId: string;
+		deviceCount: number;
+	}>;
+	byVenue: Array<{
+		venueId: string;
+		deviceCount: number;
+	}>;
+	activeVsInactive: {
+		active7Days: number;
+		active30Days: number;
+		inactive: number;
+	};
+}
+
+// Venue Owner Types
+export interface VenueOwner {
+	id: string;
+	venueId: string;
+	email: string;
+	supabaseUserId?: string | null;
+	status: "active" | "suspended";
+	passwordChanged: boolean;
+	passwordSentAt?: string | null;
+	initialPassword?: string | null; // Only present if passwordChanged = false
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface VenueOwnerListResponse {
+	data: VenueOwner[];
+}
+
+export interface CreateVenueOwnerRequest {
+	email: string;
+}
+
+export interface ResendPasswordResponse {
+	success: boolean;
+	message: string;
+}
+
+export interface RetryOwnerCreationResponse {
+	retried: number;
+	succeeded: number;
+	failed: number;
+}
+
+// Promo Code Types
+export type PromoCodeStatus = "active" | "revoked" | "expired";
+export type PromoCodeFormat = "human_readable" | "alphanumeric" | "numeric";
+
+export interface PromoCodeGenerationSettings {
+	format?: PromoCodeFormat;
+	length?: number;
+	prefix?: string;
+	caseSensitive?: boolean;
+	allowRegeneration?: boolean;
+}
+
+export interface PromoCode {
+	id: string;
+	campaignId: string;
+	code: string;
+	status: PromoCodeStatus;
+	maxUses: number;
+	currentUses: number;
+	maxUsesPerUser?: number;
+	validFrom?: string | null;
+	validTo?: string | null;
+	generationSettings?: PromoCodeGenerationSettings | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface PromoCodeListResponse {
+	data: PromoCode[];
+}
+
+export interface CreatePromoCodeRequest {
+	code?: string; // Optional: auto-generate if not provided
+	status?: PromoCodeStatus;
+	maxUses: number;
+	maxUsesPerUser?: number;
+	validFrom?: string;
+	validTo?: string;
+	generationSettings?: PromoCodeGenerationSettings;
+}
+
+export interface UpdatePromoCodeRequest {
+	maxUses?: number;
+	status?: PromoCodeStatus;
+	validFrom?: string | null;
+	validTo?: string | null;
+}
+
+export interface RegeneratePromoCodeRequest {
+	generationSettings?: PromoCodeGenerationSettings;
+}
+
+export interface RegeneratePromoCodeResponse {
+	id: string;
+	code: string;
+	oldCodeId: string;
+	oldCode: string;
+	status: PromoCodeStatus;
+}
+
+// Promo Code Redemption Types
+export interface PromoCodeRedemption {
+	id: string;
+	promoCode: {
+		id: string;
+		code: string;
+		campaignId: string;
+		campaignName: string;
+	};
+	venue: {
+		id: string;
+		name: string;
+	};
+	redeemedBy: string; // deviceId or userId
+	redeemedAt: string;
+	verifiedAt?: string | null;
+	status: "pending" | "verified";
+}
+
+export interface PromoCodeRedemptionListResponse {
+	data: PromoCodeRedemption[];
+}
+
+export interface RedeemPromoCodeRequest {
+	campaignId: string;
+	venueId?: string;
+}
+
+export interface RedeemPromoCodeResponse {
+	redemptionId: string;
+	code: string;
+	status: "pending" | "verified";
+	message: string;
+	redeemedAt: string;
+	venue: {
+		id: string;
+		name: string;
+	};
+}
+
+export interface PromoCodeStatusResponse {
+	code: string;
+	valid: boolean;
+	status: PromoCodeStatus;
+	canRedeem: boolean;
+	message: string;
+	campaign: {
+		id: string;
+		name: string;
+	};
+}

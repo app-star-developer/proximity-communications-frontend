@@ -11,5 +11,11 @@ export const queryKeys = {
   tenant: (id: string) => ['tenant', id] as const,
   tenantUsers: (tenantId: string) => ['tenant-users', tenantId] as const,
   tenantUser: (tenantId: string, userId: string) => ['tenant-user', tenantId, userId] as const,
+  campaignNotificationConfig: (campaignId: string) => ['campaign-notification-config', campaignId] as const,
+  audienceMetrics: () => ['audience', 'metrics'] as const,
+  audienceGrowth: (params?: unknown) => ['audience', 'growth', params ?? {}] as const,
+  audienceDevices: (params?: unknown) => ['audience', 'devices', params ?? {}] as const,
+  audienceDevice: (deviceId: string) => ['audience', 'device', deviceId] as const,
+  audienceSegmentation: () => ['audience', 'segmentation'] as const,
 }
 

@@ -9,12 +9,12 @@ import { useMutation } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import type { QueryClient } from '@tanstack/react-query'
 
-import { requireAuth } from '../../../utils/requireAuth'
-import { useTenantUserList, useUpdateUserAccess } from '../../../hooks/useTenantUsers'
-import type { ApiErrorResponse, AccessLevel } from '../../../api/types'
-import { useUIStore } from '../../../state/uiStore'
-import { canManageUsers } from '../../../utils/permissions'
-import { useAuthStore } from '../../../state/authStore'
+import { requireAuth } from '@/utils/requireAuth'
+import { useTenantUserList, useUpdateUserAccess } from '@/hooks/useTenantUsers'
+import type { ApiErrorResponse, AccessLevel } from '@/api/types'
+import { useUIStore } from '@/state/uiStore'
+import { canManageUsers } from '@/utils/permissions'
+import { useAuthStore } from '@/state/authStore'
 
 export const Route = createFileRoute('/tenants/$tenantId/users/$userId/edit')({
   loader: async ({ params, context, location }) => {

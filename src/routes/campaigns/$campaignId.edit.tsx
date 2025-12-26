@@ -20,9 +20,20 @@ import type {
 	VenuePrimaryType,
 } from "../../api/types";
 import { useCampaignDetail } from "../../hooks/useCampaigns";
+import {
+	useCampaignNotificationConfig,
+	useUpsertCampaignNotificationConfig,
+	useUpdateCampaignNotificationConfig,
+	useDeleteCampaignNotificationConfig,
+} from "../../hooks/useCampaigns";
 import { useVenueOptions } from "../../hooks/useVenues";
 import { useUIStore } from "../../state/uiStore";
 import { requireAuth } from "../../utils/requireAuth";
+import { NotificationConfigForm } from "../../components/NotificationConfigForm";
+import type {
+	CreateCampaignNotificationConfigRequest,
+	UpdateCampaignNotificationConfigRequest,
+} from "../../api/types";
 
 const STATUS_OPTIONS: Campaign["status"][] = [
 	"draft",
@@ -101,7 +112,7 @@ export const Route = createFileRoute("/campaigns/$campaignId/edit")({
 		await requireAuth({
 			queryClient,
 			locationHref: location.href,
-		});
+		})
 
 		const campaignId = params.campaignId;
 		if (!campaignId) {
@@ -112,7 +123,7 @@ export const Route = createFileRoute("/campaigns/$campaignId/edit")({
 			const data = await queryClient.ensureQueryData({
 				queryKey: queryKeys.campaign(campaignId),
 				queryFn: () => campaignsApi.getById(campaignId),
-			});
+			})
 			return data;
 		} catch (error) {
 			const axiosError = error as AxiosError<ApiErrorResponse>;
@@ -147,7 +158,7 @@ function CampaignEditRoute() {
 	const initialVenueMode: "ids" | "filters" =
 		campaign.venueFilters && Object.keys(campaign.venueFilters).length > 0
 			? "filters"
-			: "ids";
+			: "ids"
 
 	const [venueSelectionMode, setVenueSelectionMode] = useState<
 		"ids" | "filters"
@@ -172,13 +183,13 @@ function CampaignEditRoute() {
 				venueIds: [] as string[],
 				venueFilters: {} as VenueFilters,
 				initialMode: "ids" as "ids" | "filters",
-			};
+			}
 		}
 
 		const newMode: "ids" | "filters" =
 			camp.venueFilters && Object.keys(camp.venueFilters).length > 0
 				? "filters"
-				: "ids";
+				: "ids"
 
 		return {
 			name: camp.name ?? "",
@@ -192,7 +203,7 @@ function CampaignEditRoute() {
 			venueIds: Array.isArray(camp.venueIds) ? camp.venueIds : [],
 			venueFilters: camp.venueFilters ?? ({} as VenueFilters),
 			initialMode: newMode,
-		};
+		}
 	}, []);
 
 	const initialFormData = getInitialFormState(campaign);
@@ -225,7 +236,7 @@ function CampaignEditRoute() {
 				timezone: formData.timezone,
 				venueIds: formData.venueIds,
 				venueFilters: formData.venueFilters,
-			});
+			})
 			initializedRef.current = campaign.id;
 		}
 	}, [campaign, getInitialFormState]);
@@ -241,11 +252,11 @@ function CampaignEditRoute() {
 				title: "Campaign updated",
 				description: "Your changes have been saved.",
 				intent: "success",
-			});
+			})
 			navigate({
 				to: "/campaigns/$campaignId",
 				params: { campaignId: campaign.id },
-			});
+			})
 		},
 		onError: (error) => {
 			const axiosError = error as AxiosError<ApiErrorResponse>;
@@ -257,7 +268,7 @@ function CampaignEditRoute() {
 						? axiosError.response.data.message
 						: "Please review the input and try again.",
 				intent: "danger",
-			});
+			})
 		},
 	});
 
@@ -270,8 +281,8 @@ function CampaignEditRoute() {
 		setFormState((previous) => ({
 			...previous,
 			[name]: value,
-		}));
-	};
+		}))
+	}
 
 	const toggleVenueSelection = (venueId: string) => {
 		setFormState((previous) => {
@@ -281,9 +292,9 @@ function CampaignEditRoute() {
 				venueIds: isSelected
 					? previous.venueIds.filter((id) => id !== venueId)
 					: [...previous.venueIds, venueId],
-			};
-		});
-	};
+			}
+		})
+	}
 
 	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
@@ -314,10 +325,10 @@ function CampaignEditRoute() {
 				Object.keys(formState.venueFilters).length > 0
 					? formState.venueFilters
 					: undefined,
-		};
+		}
 
 		mutation.mutate(payload);
-	};
+	}
 
 	const isSubmitting = mutation.isPending;
 
@@ -578,7 +589,7 @@ function CampaignEditRoute() {
 														</div>
 													</div>
 												</label>
-											);
+											)
 										})}
 									</div>
 								)}
@@ -617,8 +628,240 @@ function CampaignEditRoute() {
 					</button>
 				</footer>
 			</form>
+
+			{/* Notification Configuration Section */}
+			<CampaignNotificationSection campaignId={campaign.id} />
 		</div>
-	);
+	)
+}
+
+function CampaignNotificationSection({
+	campaignId,
+}: {
+	campaignId: string
+}) {
+	const { pushToast } = useUIStore()
+	const [isEditing, setIsEditing] = useState(false)
+	const notificationConfigQuery = useCampaignNotificationConfig(campaignId)
+	const upsertMutation = useUpsertCampaignNotificationConfig()
+	const updateMutation = useUpdateCampaignNotificationConfig()
+	const deleteMutation = useDeleteCampaignNotificationConfig()
+
+	const defaultConfig = notificationConfigQuery.data?.default ?? null
+	const isLoading =
+		notificationConfigQuery.isLoading ||
+		upsertMutation.isPending ||
+		updateMutation.isPending ||
+		deleteMutation.isPending
+
+	const handleSave = async (
+		payload:
+			| CreateCampaignNotificationConfigRequest
+			| UpdateCampaignNotificationConfigRequest,
+	) => {
+		try {
+			// Use POST upsert for default config (backend handles create/update automatically)
+			// This works whether config exists or not
+			await upsertMutation.mutateAsync({
+				campaignId,
+				payload: payload as CreateCampaignNotificationConfigRequest,
+			})
+			pushToast({
+				id: crypto.randomUUID(),
+				title: defaultConfig
+					? "Notification configuration updated"
+					: "Notification configuration created",
+				description: "Your notification settings have been saved.",
+				intent: "success",
+			})
+			setIsEditing(false)
+		} catch (error) {
+			const axiosError = error as AxiosError<ApiErrorResponse>
+			pushToast({
+				id: crypto.randomUUID(),
+				title: "Failed to save notification configuration",
+				description:
+					axiosError.response?.data && "message" in axiosError.response.data
+						? axiosError.response.data.message
+						: "Please review the input and try again.",
+				intent: "danger",
+			})
+			throw error
+		}
+	}
+
+	const handleDelete = async () => {
+		if (!defaultConfig) return
+
+		if (
+			!window.confirm(
+				"Delete notification configuration? This cannot be undone.",
+			)
+		) {
+			return
+		}
+
+		try {
+			await deleteMutation.mutateAsync({
+				campaignId,
+				notificationId: defaultConfig.id,
+			})
+			pushToast({
+				id: crypto.randomUUID(),
+				title: "Notification configuration deleted",
+				description: "The notification configuration has been removed.",
+				intent: "success",
+			})
+			setIsEditing(false)
+		} catch (error) {
+			const axiosError = error as AxiosError<ApiErrorResponse>
+			pushToast({
+				id: crypto.randomUUID(),
+				title: "Failed to delete notification configuration",
+				description:
+					axiosError.response?.data && "message" in axiosError.response.data
+						? axiosError.response.data.message
+						: "Please try again.",
+				intent: "danger",
+			})
+		}
+	}
+
+	if (notificationConfigQuery.isError) {
+		return (
+			<section className="rounded-2xl border border-slate-800/60 bg-slate-950/60 p-6 shadow-lg shadow-slate-950/20">
+				<div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs text-red-200">
+					Unable to load notification configuration. Please try again.
+				</div>
+			</section>
+		)
+	}
+
+	return (
+		<section className="rounded-2xl border border-slate-800/60 bg-slate-950/60 p-6 shadow-lg shadow-slate-950/20">
+			<header className="mb-6 flex items-center justify-between">
+				<div>
+					<h2 className="text-lg font-semibold text-white">
+						Notification Configuration
+					</h2>
+					<p className="mt-1 text-sm text-slate-400">
+						Configure push notification templates for this campaign. Use
+						template variables to personalize messages.
+					</p>
+				</div>
+				{!isEditing && (
+					<div className="flex items-center gap-2">
+						{defaultConfig && (
+							<button
+								type="button"
+								onClick={handleDelete}
+								disabled={isLoading}
+								className="rounded-lg border border-red-500/50 px-3 py-1.5 text-xs font-medium text-red-300 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+							>
+								Delete
+							</button>
+						)}
+						<button
+							type="button"
+							onClick={() => setIsEditing(true)}
+							disabled={isLoading}
+							className="rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-cyan-500/50"
+						>
+							{defaultConfig ? "Edit" : "Create Configuration"}
+						</button>
+					</div>
+				)}
+			</header>
+
+			{isEditing ? (
+				<NotificationConfigForm
+					campaignId={campaignId}
+					initialData={defaultConfig}
+					onSave={handleSave}
+					onCancel={() => setIsEditing(false)}
+					isLoading={isLoading}
+				/>
+			) : defaultConfig ? (
+				<div className="space-y-4">
+					<div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+						<div className="space-y-3">
+							<div>
+								<div className="text-xs uppercase tracking-wide text-slate-500">
+									Title
+								</div>
+								<div className="mt-1 text-sm font-medium text-white">
+									{defaultConfig.title}
+								</div>
+							</div>
+							{defaultConfig.body && (
+								<div>
+									<div className="text-xs uppercase tracking-wide text-slate-500">
+										Body
+									</div>
+									<div className="mt-1 text-sm text-slate-300">
+										{defaultConfig.body}
+									</div>
+								</div>
+							)}
+							{defaultConfig.deepLinkUrl && (
+								<div>
+									<div className="text-xs uppercase tracking-wide text-slate-500">
+										Deep Link URL
+									</div>
+									<div className="mt-1 font-mono text-xs text-slate-400">
+										{defaultConfig.deepLinkUrl}
+									</div>
+								</div>
+							)}
+							{defaultConfig.imageUrl && (
+								<div>
+									<div className="text-xs uppercase tracking-wide text-slate-500">
+										Image URL
+									</div>
+									<div className="mt-1 text-xs text-slate-400">
+										{defaultConfig.imageUrl}
+									</div>
+								</div>
+							)}
+							{defaultConfig.actionButtons &&
+								defaultConfig.actionButtons.length > 0 && (
+									<div>
+										<div className="text-xs uppercase tracking-wide text-slate-500">
+											Action Buttons
+										</div>
+										<div className="mt-2 space-y-2">
+											{defaultConfig.actionButtons.map((button, index) => (
+												<div
+													key={index}
+													className="rounded-lg border border-slate-800 bg-slate-950/50 p-2"
+												>
+													<div className="text-xs font-medium text-slate-200">
+														{button.label}
+													</div>
+													<div className="mt-1 font-mono text-xs text-slate-500">
+														{button.action}
+													</div>
+												</div>
+											))}
+										</div>
+									</div>
+								)}
+						</div>
+					</div>
+				</div>
+			) : (
+				<div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/40 px-4 py-8 text-center">
+					<p className="text-sm text-slate-400">
+						No notification configuration set up yet.
+					</p>
+					<p className="mt-1 text-xs text-slate-500">
+						Create a configuration to customize push notifications for this
+						campaign.
+					</p>
+				</div>
+			)}
+		</section>
+	)
 }
 
 function VenueFiltersForm({
@@ -652,8 +895,8 @@ function VenueFiltersForm({
 			onFiltersChange({
 				...filters,
 				primaryType: newTypes.length > 0 ? newTypes : undefined,
-			});
-			return;
+			})
+			return
 		}
 
 		if (name.startsWith("radius.")) {
@@ -662,12 +905,12 @@ function VenueFiltersForm({
 				latitude: undefined,
 				longitude: undefined,
 				meters: undefined,
-			};
+			}
 			const newValue = value ? Number(value) : undefined;
 			const newRadius = {
 				...currentRadius,
 				[field]: newValue,
-			};
+			}
 			// Only include radius if all required fields are present
 			if (
 				newRadius.latitude !== undefined &&
@@ -677,29 +920,29 @@ function VenueFiltersForm({
 				onFiltersChange({
 					...filters,
 					radius: newRadius as VenueFilters["radius"],
-				});
+				})
 			} else {
 				onFiltersChange({
 					...filters,
 					radius: undefined,
-				});
+				})
 			}
-			return;
+			return
 		}
 
 		if (type === "checkbox") {
 			onFiltersChange({
 				...filters,
 				[name]: checked || undefined,
-			});
-			return;
+			})
+			return
 		}
 
 		onFiltersChange({
 			...filters,
 			[name]: value || undefined,
-		});
-	};
+		})
+	}
 
 	return (
 		<div className="space-y-4">
@@ -858,5 +1101,5 @@ function VenueFiltersForm({
 				</div>
 			</div>
 		</div>
-	);
+	)
 }

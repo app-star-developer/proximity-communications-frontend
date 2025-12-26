@@ -227,7 +227,7 @@ function AudienceInsightsRoute() {
           </header>
           <div className="space-y-3 text-sm text-slate-300">
             <p>
-              <span className="text-slate-500">Interactions:</span>{' '}
+              <span className="text-slate-500">Interactions:</span>{" "}
               <span className="font-semibold text-white">
                 {summaryQuery.isLoading ? '...' : totalInteractions.toLocaleString()}
               </span>

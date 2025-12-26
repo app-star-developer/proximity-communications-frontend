@@ -35,7 +35,7 @@ function DashboardOverview() {
 	const { user } = useAuthStore();
 	const [preset, setPreset] = useState<(typeof DATE_PRESETS)[number]>(
 		DATE_PRESETS[0],
-	);
+	)
 
 	const { startAt, endAt } = useMemo(() => {
 		const end = new Date();
@@ -43,7 +43,7 @@ function DashboardOverview() {
 		return {
 			startAt: start.toISOString(),
 			endAt: addDays(end, 1).toISOString(),
-		};
+		}
 	}, [preset.value]);
 
 	const summaryQuery = useEventSummary({
@@ -65,17 +65,17 @@ function DashboardOverview() {
 			return EVENT_PRIORITY.map((eventType) => ({
 				eventType,
 				count: 0,
-			}));
+			}))
 		}
 
 		const lookup = new Map(
 			summaryQuery.data.data.map((entry) => [entry.eventType, entry.count]),
-		);
+		)
 
 		return EVENT_PRIORITY.map((eventType) => ({
 			eventType,
 			count: lookup.get(eventType) ?? 0,
-		}));
+		}))
 	}, [summaryQuery.data]);
 
 	const timeseriesData = useMemo(() => {
@@ -87,7 +87,7 @@ function DashboardOverview() {
 				),
 				count: point.count,
 			})) ?? []
-		);
+		)
 	}, [preset.value, timeseriesQuery.data]);
 
 	const totalSent = summaryMetrics.find(
@@ -103,15 +103,15 @@ function DashboardOverview() {
 	const ctr =
 		totalSent && totalSent > 0
 			? `${(((totalOpened ?? 0) / totalSent) * 100).toFixed(1)}%`
-			: "--";
+			: "--"
 	const cvr =
 		totalOpened && totalOpened > 0
 			? `${(((totalClicks ?? 0) / totalOpened) * 100).toFixed(1)}%`
-			: "--";
+			: "--"
 
 	return (
-		<div className="space-y-6">
-			<section className="rounded-2xl border border-slate-800/60 bg-slate-900/60 p-6 shadow-lg shadow-slate-950/20 backdrop-blur">
+        <div className="space-y-6">
+            <section className="rounded-2xl border border-slate-800/60 bg-slate-900/60 p-6 shadow-lg shadow-slate-950/20 backdrop-blur">
 				<header className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
 					<div>
 						<h2 className="text-lg font-semibold text-white">Welcome back</h2>
@@ -130,9 +130,9 @@ function DashboardOverview() {
 							onChange={(event) => {
 								const next = DATE_PRESETS.find(
 									(option) => option.value === Number(event.target.value),
-								);
+								)
 								if (next) {
-									setPreset(next);
+									setPreset(next)
 								}
 							}}
 							className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
@@ -179,7 +179,7 @@ function DashboardOverview() {
 					/>
 				</div>
 			</section>
-			<section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+            <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
 				<div className="rounded-2xl border border-slate-800/60 bg-slate-950/60 p-6 shadow-lg shadow-slate-950/20">
 					<header className="mb-4 flex items-center justify-between">
 						<div>
@@ -237,7 +237,7 @@ function DashboardOverview() {
 										dataKey="count"
 										stroke="#2dd4bf"
 										strokeWidth={2}
-										fill={`url(#${gradientId})`}
+										fill={"url(#${gradientId})"}
 										dot={false}
 										isAnimationActive={false}
 									/>
@@ -277,8 +277,8 @@ function DashboardOverview() {
 					</ul>
 				</div>
 			</section>
-		</div>
-	);
+        </div>
+    )
 }
 
 function MetricCard({
@@ -298,7 +298,7 @@ function MetricCard({
 			<p className="mt-3 text-3xl font-semibold text-white">{value}</p>
 			<p className="mt-2 text-xs text-slate-500">{description}</p>
 		</div>
-	);
+	)
 }
 
 function ErrorBanner({ message }: { message: string }) {
@@ -306,5 +306,5 @@ function ErrorBanner({ message }: { message: string }) {
 		<div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs text-red-200">
 			{message}
 		</div>
-	);
+	)
 }

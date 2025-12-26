@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 
 import { requireAuth } from "../../utils/requireAuth";
+import { LighthouseLogo } from "../../components/LighthouseLogo";
 
 export const Route = createFileRoute("/dashboard/__layout")({
 	loader: async ({ context, location }) => {
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/dashboard/__layout")({
 		return requireAuth({
 			queryClient,
 			locationHref: location.href,
-		});
+		})
 	},
 	component: DashboardLayout,
 });
@@ -24,10 +25,13 @@ function DashboardLayout() {
 		<div className="flex min-h-[calc(100vh-4rem)] flex-col gap-6 pb-10">
 			<header className="flex items-center justify-between rounded-2xl border border-slate-800/60 bg-slate-900/60 px-6 py-4 shadow-lg shadow-slate-950/30 backdrop-blur">
 				<div>
-					<h1 className="text-lg font-semibold text-white">
-						Proximity Marketing Console
-					</h1>
-					<p className="text-xs text-slate-400">
+					<div className="flex items-center gap-3">
+						<LighthouseLogo size={36} />
+						<h1 className="text-lg font-semibold text-white">
+							Lighthouse
+						</h1>
+					</div>
+					<p className="mt-1 text-xs text-slate-400">
 						Monitor geofenced campaigns, venues, and engagement in real time.
 					</p>
 				</div>
@@ -36,13 +40,15 @@ function DashboardLayout() {
 					<DashboardLink to="/campaigns">Campaigns</DashboardLink>
 					<DashboardLink to="/dashboard/venues">Venues</DashboardLink>
 					<DashboardLink to="/dashboard/audience">Audience</DashboardLink>
+					<DashboardLink to="/dashboard/notifications">Notifications</DashboardLink>
+					<DashboardLink to="/dashboard/geofencing">Geofencing</DashboardLink>
 				</nav>
 			</header>
 			<main className="flex-1">
 				<Outlet />
 			</main>
 		</div>
-	);
+	)
 }
 
 function DashboardLink({
@@ -68,5 +74,5 @@ function DashboardLink({
 		>
 			{children}
 		</Link>
-	);
+	)
 }

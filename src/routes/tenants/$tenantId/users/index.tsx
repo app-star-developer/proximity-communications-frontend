@@ -4,12 +4,12 @@ import type { AxiosError } from 'axios'
 import type { QueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 
-import { requireAuth } from '../../../utils/requireAuth'
-import { useTenantUserList, useRemoveUser } from '../../../hooks/useTenantUsers'
-import type { ApiErrorResponse } from '../../../api/types'
-import { useUIStore } from '../../../state/uiStore'
-import { canManageUsers } from '../../../utils/permissions'
-import { useAuthStore } from '../../../state/authStore'
+import { requireAuth } from '@/utils/requireAuth'
+import { useTenantUserList, useRemoveUser } from '@/hooks/useTenantUsers'
+import type { ApiErrorResponse } from '@/api/types'
+import { useUIStore } from '@/state/uiStore'
+import { canManageUsers } from '@/utils/permissions'
+import { useAuthStore } from '@/state/authStore'
 
 export const Route = createFileRoute('/tenants/$tenantId/users/')({
   loader: async ({ params, context, location }) => {
@@ -19,7 +19,7 @@ export const Route = createFileRoute('/tenants/$tenantId/users/')({
       locationHref: location.href,
     })
     const { user } = useAuthStore.getState()
-    // Note: In a real implementation, you'd check the user's access level for this tenant
+    // Note: In a real implementation, you'd check the user's access level for this organization
     // For now, we'll allow access if they're a platform user or have admin access
     if (!user?.isPlatformUser && !canManageUsers(user)) {
       throw redirect({ to: '/' })
@@ -40,7 +40,7 @@ function TenantUsersListRoute() {
   const handleRemove = (userId: string, email: string) => {
     if (
       !window.confirm(
-        `Remove ${email} from this tenant? They will lose all access.`,
+        `Remove ${email} from this organization? They will lose all access.`,
       )
     ) {
       return
@@ -52,7 +52,7 @@ function TenantUsersListRoute() {
           pushToast({
             id: crypto.randomUUID(),
             title: 'User removed',
-            description: 'The user has been removed from the tenant.',
+            description: 'The user has been removed from the organization.',
             intent: 'success',
           })
         },
@@ -76,9 +76,9 @@ function TenantUsersListRoute() {
     <div className="space-y-6">
       <header className="flex flex-col gap-4 rounded-2xl border border-slate-800/60 bg-slate-900/60 p-6 shadow-lg shadow-slate-950/30 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-white">Tenant users</h2>
+          <h2 className="text-xl font-semibold text-white">Organization users</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Manage users with access to this tenant.
+            Manage users with access to this organization.
           </p>
         </div>
         <Link
@@ -164,13 +164,4 @@ function TenantUsersListRoute() {
       </section>
     </div>
   )
-}
-
-
-export const Route = createFileRoute('/tenants/$tenantId/users/')({
-  component: RouteComponent,
-})
-
-function RouteComponent() {
-  return <div>Hello "/tenants/$tenantId/users/"!</div>
 }

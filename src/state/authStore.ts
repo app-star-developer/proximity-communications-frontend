@@ -25,6 +25,7 @@ export interface AuthState {
 	markAuthenticated: (user: AuthenticatedUser) => void;
 	markAnonymous: () => void;
 	selectTenant: (tenantId: string, accessLevel?: AccessLevel) => void;
+	clearTenantSelection: () => void;
 }
 
 const initialState = {
@@ -87,6 +88,12 @@ export const useAuthStore = create<AuthState>()(
 					selectedTenant: tenantId,
 					accessLevel: accessLevel ?? null,
 				})),
+			clearTenantSelection: () =>
+				set((prev) => ({
+					...prev,
+					selectedTenant: null,
+					accessLevel: null,
+				})),
 		}),
 		{
 			name: "proximity.auth.v1",
@@ -125,4 +132,5 @@ export const authStore = {
 	markAnonymous: () => useAuthStore.getState().markAnonymous(),
 	selectTenant: (tenantId: string, accessLevel?: AccessLevel) =>
 		useAuthStore.getState().selectTenant(tenantId, accessLevel),
+	clearTenantSelection: () => useAuthStore.getState().clearTenantSelection(),
 };

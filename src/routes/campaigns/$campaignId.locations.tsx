@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, useEffect } from 'react'
 import {
   Link,
   createFileRoute,
@@ -14,7 +14,7 @@ import { campaignsApi } from '../../api/modules/campaigns'
 import type { ApiErrorResponse } from '../../api/types'
 import { useCampaignDetail } from '../../hooks/useCampaigns'
 import { useUIStore } from '../../state/uiStore'
-import { useVenueList } from '../../hooks/useVenues'
+import { useInfiniteVenues } from '../../hooks/useVenues'
 import { VenueCard } from '../../components/VenueCard'
 import { VenueSelector } from '../../components/VenueSelector'
 
@@ -62,30 +62,65 @@ function CampaignLocationsRoute() {
   const textareaId = useId()
   const checkboxIdPrefix = useMemo(() => crypto.randomUUID(), [])
 
-  // Fetch venue details for attached venues
+
+  // Fetch venue details for attached venues using infinite scrolling
   const attachedVenueIds = campaign.venueIds
-  const venuesQuery = useVenueList({ limit: 1000 })
-  const venues = venuesQuery.data?.data ?? []
+  const venuesQuery = useInfiniteVenues()
+  
+  // Flatten all pages into a single array
+  const venues = useMemo(() => {
+    return venuesQuery.data?.pages.flatMap((page) => page.data) ?? []
+  }, [venuesQuery.data])
+
   const attachedVenues = useMemo(() => {
     return venues.filter((v) => attachedVenueIds.includes(v.id))
   }, [venues, attachedVenueIds])
 
+  // Auto-fetch next pages if we haven't found all attached venues yet
+  const foundAttachedCount = attachedVenues.length
+  const missingAttachedCount = attachedVenueIds.length - foundAttachedCount
+  const hasMorePages = venuesQuery.hasNextPage
+  const isLoadingMore = venuesQuery.isFetchingNextPage
+
+  // Auto-load more if we're missing attached venues and there are more pages
+  useEffect(() => {
+    if (
+      missingAttachedCount > 0 &&
+      hasMorePages &&
+      !isLoadingMore &&
+      !venuesQuery.isLoading &&
+      venuesQuery.isSuccess
+    ) {
+      venuesQuery.fetchNextPage()
+    }
+  }, [missingAttachedCount, hasMorePages, isLoadingMore, venuesQuery.isLoading, venuesQuery.isSuccess, venuesQuery.fetchNextPage])
+
+
   const mutation = useMutation({
     mutationFn: (venueIds: string[]) =>
       campaignsApi.update(campaign.id, { venueIds }),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(queryKeys.campaign(campaign.id), updated)
-      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns({}) })
-      pushToast({
-        id: crypto.randomUUID(),
-        title: 'Venues updated',
-        description: `${updated.venueIds.length} venues linked.`,
-        intent: 'success',
+    onMutate: async (newVenueIds) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: queryKeys.campaign(campaign.id) })
+
+      // Snapshot the previous value for rollback
+      const previousCampaign = queryClient.getQueryData(queryKeys.campaign(campaign.id))
+
+      // Optimistically update the campaign cache
+      queryClient.setQueryData(queryKeys.campaign(campaign.id), (old: typeof campaign) => {
+        if (!old) return old
+        return { ...old, venueIds: newVenueIds }
       })
-      setPendingIds('')
-      setSelectedIds([])
+
+      // Return context with the previous value for rollback
+      return { previousCampaign }
     },
-    onError: (error) => {
+    onError: (error, _newVenueIds, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousCampaign) {
+        queryClient.setQueryData(queryKeys.campaign(campaign.id), context.previousCampaign)
+      }
+
       const axiosError = error as AxiosError<ApiErrorResponse>
       const message =
         axiosError.response?.data && 'message' in axiosError.response.data
@@ -97,6 +132,25 @@ function CampaignLocationsRoute() {
         description: message,
         intent: 'danger',
       })
+    },
+    onSuccess: (updated) => {
+      // Update with the real response from the server
+      queryClient.setQueryData(queryKeys.campaign(campaign.id), updated)
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns({}) })
+      // Invalidate all venue queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.venues({}) })
+      pushToast({
+        id: crypto.randomUUID(),
+        title: 'Venues updated',
+        description: `${updated.venueIds.length} venues linked.`,
+        intent: 'success',
+      })
+      setPendingIds('')
+      setSelectedIds([])
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaign(campaign.id) })
     },
   })
 
@@ -118,8 +172,10 @@ function CampaignLocationsRoute() {
   }
 
   const handleVenueSelectorChange = (venueIds: string[]) => {
-    const merged = Array.from(new Set([...attachedVenueIds, ...venueIds]))
-    mutation.mutate(merged, {
+    // venueIds is the complete new selection from VenueSelector
+    // It includes all checked venues (both previously attached and newly selected)
+    // So we use it directly as the new attached venues list
+    mutation.mutate(venueIds, {
       onSuccess: () => {
         setShowVenueSelector(false)
       },
@@ -197,6 +253,14 @@ function CampaignLocationsRoute() {
             <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 px-4 py-8 text-center text-sm text-slate-400">
               No venues linked yet. Use the venue selector or attach IDs manually.
             </div>
+          ) : venuesQuery.isLoading && venues.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 px-4 py-8 text-center text-sm text-slate-400">
+              Loading venue details...
+            </div>
+          ) : venuesQuery.isError ? (
+            <div className="rounded-xl border border-dashed border-red-700/50 bg-red-900/20 px-4 py-8 text-center text-sm text-red-400">
+              Failed to load venues. Please refresh the page.
+            </div>
           ) : attachedVenues.length > 0 ? (
             <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {attachedVenues.map((venue) => {
@@ -228,9 +292,33 @@ function CampaignLocationsRoute() {
                 )
               })}
             </ul>
-          ) : (
+          ) : isLoadingMore ? (
             <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 px-4 py-8 text-center text-sm text-slate-400">
-              Loading venue details...
+              Loading more venues to find attached venues...
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-yellow-700/50 bg-yellow-900/20 px-4 py-8 text-center text-sm text-yellow-400">
+              <p>
+                {attachedVenueIds.length} venue(s) linked but not found in the venues list.
+              </p>
+              {hasMorePages && (
+                <button
+                  type="button"
+                  onClick={() => venuesQuery.fetchNextPage()}
+                  disabled={isLoadingMore}
+                  className="mt-3 rounded-lg border border-yellow-600/50 bg-yellow-900/20 px-4 py-2 text-xs text-yellow-300 transition hover:bg-yellow-900/30 disabled:opacity-50"
+                >
+                  {isLoadingMore ? 'Loading...' : 'Load more venues'}
+                </button>
+              )}
+              <p className="mt-2 text-xs">
+                They may have been deleted or belong to a different organization.
+              </p>
+            </div>
+          )}
+          {isLoadingMore && attachedVenues.length > 0 && (
+            <div className="mt-4 text-center text-xs text-slate-500">
+              Loading more venues...
             </div>
           )}
         </article>

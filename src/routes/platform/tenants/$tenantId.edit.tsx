@@ -9,14 +9,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import type { QueryClient } from '@tanstack/react-query'
 
-import { requireAuth } from '../../../utils/requireAuth'
-import { useTenant, useUpdateTenant } from '../../../hooks/useTenants'
-import { queryKeys } from '../../../api/queryKeys'
-import { tenantsApi } from '../../../api/modules/tenants'
-import type { ApiErrorResponse } from '../../../api/types'
-import { useUIStore } from '../../../state/uiStore'
-import { isPlatformUser } from '../../../utils/permissions'
-import { useAuthStore } from '../../../state/authStore'
+import { requireAuth } from '@/utils/requireAuth'
+import { useTenant, useUpdateTenant } from '@/hooks/useTenants'
+import { queryKeys } from '@/api/queryKeys'
+import { tenantsApi } from '@/api/modules/tenants'
+import type { ApiErrorResponse } from '@/api/types'
+import { useUIStore } from '@/state/uiStore'
+import { isPlatformUser } from '@/utils/permissions'
+import { useAuthStore } from '@/state/authStore'
 
 export const Route = createFileRoute('/platform/tenants/$tenantId/edit')({
   loader: async ({ params, context, location }) => {

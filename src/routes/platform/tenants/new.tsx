@@ -5,16 +5,15 @@ import {
   useNavigate,
   redirect,
 } from '@tanstack/react-router'
-import { useMutation } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import type { QueryClient } from '@tanstack/react-query'
 
-import { requireAuth } from '../../../utils/requireAuth'
-import { useCreateTenant } from '../../../hooks/useTenants'
-import type { ApiErrorResponse } from '../../../api/types'
-import { useUIStore } from '../../../state/uiStore'
-import { isPlatformUser } from '../../../utils/permissions'
-import { useAuthStore } from '../../../state/authStore'
+import { requireAuth } from '@/utils/requireAuth'
+import { useCreateTenant } from '@/hooks/useTenants'
+import type { ApiErrorResponse } from '@/api/types'
+import { useUIStore } from '@/state/uiStore'
+import { isPlatformUser } from '@/utils/permissions'
+import { useAuthStore } from '@/state/authStore'
 
 export const Route = createFileRoute('/platform/tenants/new')({
   loader: async ({ context, location }) => {
@@ -80,15 +79,22 @@ function NewTenantRoute() {
       },
       {
         onSuccess: (created) => {
+          const tenantLabel =
+            formState.tenantName ||
+            created?.tenantSlug ||
+            created?.tenantId ||
+            'Organization'
           pushToast({
             id: crypto.randomUUID(),
-            title: 'Tenant created',
-            description: `${created.name} has been created successfully.`,
+            title: 'Organization created',
+            description:
+              created?.message ||
+              `${tenantLabel} has been created successfully.`,
             intent: 'success',
           })
           navigate({
             to: '/platform/tenants/$tenantId',
-            params: { tenantId: created.id },
+            params: { tenantId: created.tenantId },
           })
         },
         onError: (error) => {
@@ -96,7 +102,7 @@ function NewTenantRoute() {
           const message =
             axiosError.response?.data && 'message' in axiosError.response.data
               ? axiosError.response.data.message
-              : 'Failed to create tenant. Check the input and try again.'
+              : 'Failed to create organization. Check the input and try again.'
           pushToast({
             id: crypto.randomUUID(),
             title: 'Creation failed',
@@ -113,9 +119,9 @@ function NewTenantRoute() {
       <header className="flex flex-col gap-3 rounded-2xl border border-slate-800/60 bg-slate-900/60 p-6 shadow-lg shadow-slate-950/30 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500">
-            New tenant
+            New organization
           </p>
-          <h1 className="text-2xl font-semibold text-white">Create tenant</h1>
+          <h1 className="text-2xl font-semibold text-white">Create organization</h1>
         </div>
         <Link
           to="/platform/tenants"
@@ -135,7 +141,7 @@ function NewTenantRoute() {
               htmlFor={nameId}
               className="text-xs uppercase tracking-wide text-slate-500"
             >
-              Tenant name *
+              Organization name *
             </label>
             <input
               id={nameId}
@@ -151,7 +157,7 @@ function NewTenantRoute() {
               htmlFor={slugId}
               className="text-xs uppercase tracking-wide text-slate-500"
             >
-              Tenant slug
+              Organization slug
             </label>
             <input
               id={slugId}
@@ -263,13 +269,4 @@ function NewTenantRoute() {
       </form>
     </div>
   )
-}
-
-
-export const Route = createFileRoute('/platform/tenants/new')({
-  component: RouteComponent,
-})
-
-function RouteComponent() {
-  return <div>Hello "/platform/tenants/new"!</div>
 }

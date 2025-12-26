@@ -6,12 +6,12 @@ export function hasAccessLevel(
 ): boolean {
   if (!user) return false
 
-  // Platform superusers have admin access to all tenants
+  // Platform superusers have admin access to all organizations
   if (user.isPlatformUser) return true
 
-  // For tenant users, check their access level
+  // For organization users, check their access level
   // This would need to be stored in the user object or fetched separately
-  // For now, we'll assume all tenant users have at least viewer access
+  // For now, we'll assume all organization users have at least viewer access
   // In a real implementation, you'd check the user's accessLevel for the current tenant
   return true
 }

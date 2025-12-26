@@ -7,12 +7,14 @@ import {
 	useSearch,
 } from "@tanstack/react-router";
 import type { AxiosError } from "axios";
+import { Eye, EyeOff } from "lucide-react";
 import { useId, useState } from "react";
 
 import { authApi } from "../api/modules/auth";
 import { usersApi } from "../api/modules/users";
 import { queryKeys } from "../api/queryKeys";
 import type { ApiErrorResponse } from "../api/types";
+import { LighthouseLogo } from "../components/LighthouseLogo";
 import { authStore } from "../state/authStore";
 
 type LoginSearch = {
@@ -35,7 +37,7 @@ const parseErrorMessage = (error: unknown) => {
 	}
 
 	if ("message" in responseData && typeof responseData.message === "string") {
-		return responseData.message ?? "Invalid credentials.";
+		return responseData.message ?? "An error occured. Please try again.";
 	}
 
 	if ("code" in responseData && typeof responseData.code === "string") {
@@ -74,6 +76,7 @@ function LoginRoute() {
 	const [tenant, setTenant] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
+	const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 	const redirectTo = search.redirect ?? "/";
@@ -129,21 +132,24 @@ function LoginRoute() {
 	return (
 		<div className="grid min-h-[calc(100vh-4rem)] w-full place-items-center">
 			<div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/70 p-8 shadow-2xl shadow-slate-950/40 backdrop-blur">
-				<div className="mb-8 space-y-2 text-center">
+				<div className="mb-8 space-y-4 text-center">
+					<div className="flex justify-center">
+						<LighthouseLogo size={56} />
+					</div>
 					<h1 className="text-2xl font-semibold text-white">
-						Sign in to your brand console
+						Sign in to Lighthouse
 					</h1>
 					<p className="text-sm text-slate-400">
 						Manage proximity campaigns, venues, and analytics in one place.
 					</p>
 				</div>
 				<form onSubmit={handleSubmit} className="space-y-5">
-					<div className="space-y-1">
+					{/* <div className="space-y-1">
 						<label
 							htmlFor={tenantInputId}
 							className="text-sm font-medium text-slate-300"
 						>
-							Tenant
+							Organization
 						</label>
 						<input
 							id={tenantInputId}
@@ -156,7 +162,7 @@ function LoginRoute() {
 							placeholder="e.g. guinness"
 							required={false}
 						/>
-					</div>
+					</div> */}
 					<div className="space-y-1">
 						<label
 							htmlFor={emailInputId}
@@ -183,17 +189,30 @@ function LoginRoute() {
 						>
 							Password
 						</label>
-						<input
-							id={passwordInputId}
-							name="password"
-							type="password"
-							autoComplete="current-password"
-							value={password}
-							onChange={(event) => setPassword(event.target.value)}
-							className="w-full rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 text-slate-100 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/40"
-							placeholder="Enter your password"
-							required
-						/>
+						<div className="relative">
+							<input
+								id={passwordInputId}
+								name="password"
+								type={isPasswordVisible ? "text" : "password"}
+								autoComplete="current-password"
+								value={password}
+								onChange={(event) => setPassword(event.target.value)}
+								className="w-full rounded-lg border border-slate-800 bg-slate-950/50 px-3 py-2 pr-12 text-slate-100 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/40"
+								placeholder="Enter your password"
+								required
+							/>
+							<button
+								type="button"
+								aria-label={
+									isPasswordVisible ? "Hide password" : "Show password"
+								}
+								aria-pressed={isPasswordVisible}
+								onClick={() => setIsPasswordVisible((prev) => !prev)}
+								className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 transition hover:bg-slate-900 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+							>
+								{isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+							</button>
+						</div>
 					</div>
 					{errorMessage ? (
 						<p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">

@@ -5,16 +5,15 @@ import {
   useNavigate,
   redirect,
 } from '@tanstack/react-router'
-import { useMutation } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import type { QueryClient } from '@tanstack/react-query'
 
-import { requireAuth } from '../../../utils/requireAuth'
-import { useInviteUser } from '../../../hooks/useTenantUsers'
-import type { ApiErrorResponse, AccessLevel } from '../../../api/types'
-import { useUIStore } from '../../../state/uiStore'
-import { canManageUsers } from '../../../utils/permissions'
-import { useAuthStore } from '../../../state/authStore'
+import { requireAuth } from '@/utils/requireAuth'
+import { useInviteUser } from '@/hooks/useTenantUsers'
+import type { ApiErrorResponse, AccessLevel } from '@/api/types'
+import { useUIStore } from '@/state/uiStore'
+import { canManageUsers } from '@/utils/permissions'
+import { useAuthStore } from '@/state/authStore'
 
 export const Route = createFileRoute('/tenants/$tenantId/users/invite')({
   loader: async ({ params, context, location }) => {
@@ -87,7 +86,7 @@ function InviteUserRoute() {
           pushToast({
             id: crypto.randomUUID(),
             title: 'User invited',
-            description: `${formState.email} has been invited to the tenant.`,
+            description: `${formState.email} has been invited to the organization.`,
             intent: 'success',
           })
           navigate({
@@ -119,7 +118,7 @@ function InviteUserRoute() {
           <p className="text-xs uppercase tracking-wide text-slate-500">
             Invite user
           </p>
-          <h1 className="text-2xl font-semibold text-white">Invite user to tenant</h1>
+          <h1 className="text-2xl font-semibold text-white">Invite user to organization</h1>
         </div>
         <Link
           to="/tenants/$tenantId/users"

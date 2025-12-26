@@ -4,6 +4,7 @@ import type {
   TenantListResponse,
   CreateTenantRequest,
   UpdateTenantRequest,
+  AuthSignupResponse,
 } from '../types'
 
 export interface TenantListParams {
@@ -27,7 +28,9 @@ export const tenantsApi = {
   },
 
   async create(payload: CreateTenantRequest) {
-    const response = await api.post<TenantResponse>('/tenants', payload)
+    // Backend returns a signup-style response for tenant creation
+    // { message, tenantId, tenantSlug, adminUserId }
+    const response = await api.post<AuthSignupResponse>('/tenants', payload)
     return response.data
   },
 

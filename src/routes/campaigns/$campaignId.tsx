@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { Link, createFileRoute, redirect, useNavigate, Outlet, useRouterState } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
@@ -11,6 +11,7 @@ import { campaignsApi } from '../../api/modules/campaigns'
 import { useEventSummary } from '../../hooks/useAnalytics'
 import type { ApiErrorResponse } from '../../api/types'
 import { useUIStore } from '../../state/uiStore'
+import { PromoCodesSection } from '../../components/PromoCodesSection'
 
 export const Route = createFileRoute('/campaigns/$campaignId')({
   loader: async ({ params, context, location }) => {
@@ -52,6 +53,17 @@ function CampaignDetailRoute() {
   const isCancellable = ['draft', 'scheduled', 'active', 'paused'].includes(
     campaign.status,
   )
+
+  // Check if we're on a child route (edit or locations)
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const isChildRoute = pathname.includes('/edit') || pathname.includes('/locations')
+
+  // If we're on a child route, render the outlet (which will render the child component)
+  if (isChildRoute) {
+    return <Outlet />
+  }
 
   const cancelMutation = useMutation({
     mutationFn: () => campaignsApi.cancel(campaign.id),
@@ -119,8 +131,8 @@ function CampaignDetailRoute() {
       opened,
       clicks,
       redeems,
-      ctr: sent > 0 ? `${((opened / sent) * 100).toFixed(1)}%` : '--',
-      cvr: opened > 0 ? `${((clicks / opened) * 100).toFixed(1)}%` : '--',
+      ctr: sent > 0 ? `${((opened / sent) * 100).toFixed(1)}%` : `--`,
+      cvr: opened > 0 ? `${((clicks / opened) * 100).toFixed(1)}%` : `--`,
     }
   }, [summaryQuery.data])
 
@@ -133,7 +145,7 @@ function CampaignDetailRoute() {
               Campaign
             </p>
             <h1 className="text-2xl font-semibold text-white">{campaign.name}</h1>
-            <p className="mt-1 text-sm text-slate-400">{campaign.description ?? 'No description provided yet.'}</p>
+            <p className="mt-1 text-sm text-slate-400">{campaign.description ?? "No description provided yet."}</p>
           </div>
           <div className="flex items-center gap-2">
             <span
@@ -166,7 +178,7 @@ function CampaignDetailRoute() {
               Radius
             </dt>
             <dd className="mt-1 font-medium text-slate-200">
-              {campaign.radiusMeters ? `${campaign.radiusMeters} m` : 'Not set'}
+              {campaign.radiusMeters ? `${campaign.radiusMeters} m` : `Not set`}
             </dd>
           </div>
           <div>
@@ -281,12 +293,16 @@ function CampaignDetailRoute() {
                 key={venueId}
                 className="rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-xs text-slate-300"
               >
-                <span className="font-medium text-slate-200">Venue ID:</span>{' '}
+                <span className="font-medium text-slate-200">Venue ID:</span>{" "}
                 {venueId}
               </li>
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="rounded-2xl border border-slate-800/60 bg-slate-950/60 p-6 shadow-lg shadow-slate-950/20">
+        <PromoCodesSection campaignId={campaign.id} />
       </section>
     </div>
   )

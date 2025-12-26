@@ -8,6 +8,8 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
+import { createFileRoute } from '@tanstack/react-router'
+
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectTenantRouteImport } from './routes/select-tenant'
@@ -16,17 +18,35 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
+import { Route as GeofencingIndexRouteImport } from './routes/geofencing/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as CampaignsIndexRouteImport } from './routes/campaigns/index'
-import { Route as DashboardVenuesRouteImport } from './routes/dashboard/venues'
+import { Route as AudienceIndexRouteImport } from './routes/audience/index'
+import { Route as PlatformTenantIdRouteImport } from './routes/platform/$tenantId'
 import { Route as DashboardAudienceRouteImport } from './routes/dashboard/audience'
 import { Route as Dashboard_layoutRouteImport } from './routes/dashboard/__layout'
 import { Route as CampaignsNewRouteImport } from './routes/campaigns/new'
 import { Route as CampaignsCampaignIdRouteImport } from './routes/campaigns/$campaignId'
 import { Route as PlatformTenantsIndexRouteImport } from './routes/platform/tenants/index'
+import { Route as DashboardVenuesIndexRouteImport } from './routes/dashboard/venues/index'
+import { Route as PlatformTenantsNewRouteImport } from './routes/platform/tenants/new'
+import { Route as PlatformTenantsTenantIdRouteImport } from './routes/platform/tenants/$tenantId'
+import { Route as DashboardVenuesNewRouteImport } from './routes/dashboard/venues/new'
 import { Route as CampaignsCampaignIdLocationsRouteImport } from './routes/campaigns/$campaignId.locations'
 import { Route as CampaignsCampaignIdEditRouteImport } from './routes/campaigns/$campaignId.edit'
+import { Route as TenantsTenantIdUsersIndexRouteImport } from './routes/tenants/$tenantId/users/index'
+import { Route as TenantsTenantIdUsersInviteRouteImport } from './routes/tenants/$tenantId/users/invite'
+import { Route as PlatformTenantsTenantIdEditRouteImport } from './routes/platform/tenants/$tenantId.edit'
+import { Route as TenantsTenantIdUsersUserIdEditRouteImport } from './routes/tenants/$tenantId/users/$userId.edit'
 
+const DashboardRouteImport = createFileRoute('/dashboard')()
+
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -62,6 +82,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NotificationsIndexRoute = NotificationsIndexRouteImport.update({
+  id: '/notifications/',
+  path: '/notifications/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GeofencingIndexRoute = GeofencingIndexRouteImport.update({
+  id: '/geofencing/',
+  path: '/geofencing/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -72,9 +102,14 @@ const CampaignsIndexRoute = CampaignsIndexRouteImport.update({
   path: '/campaigns/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardVenuesRoute = DashboardVenuesRouteImport.update({
-  id: '/dashboard/venues',
-  path: '/dashboard/venues',
+const AudienceIndexRoute = AudienceIndexRouteImport.update({
+  id: '/audience/',
+  path: '/audience/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformTenantIdRoute = PlatformTenantIdRouteImport.update({
+  id: '/platform/$tenantId',
+  path: '/platform/$tenantId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardAudienceRoute = DashboardAudienceRouteImport.update({
@@ -101,6 +136,26 @@ const PlatformTenantsIndexRoute = PlatformTenantsIndexRouteImport.update({
   path: '/platform/tenants/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardVenuesIndexRoute = DashboardVenuesIndexRouteImport.update({
+  id: '/venues/',
+  path: '/venues/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const PlatformTenantsNewRoute = PlatformTenantsNewRouteImport.update({
+  id: '/platform/tenants/new',
+  path: '/platform/tenants/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformTenantsTenantIdRoute = PlatformTenantsTenantIdRouteImport.update({
+  id: '/platform/tenants/$tenantId',
+  path: '/platform/tenants/$tenantId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardVenuesNewRoute = DashboardVenuesNewRouteImport.update({
+  id: '/venues/new',
+  path: '/venues/new',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const CampaignsCampaignIdLocationsRoute =
   CampaignsCampaignIdLocationsRouteImport.update({
     id: '/locations',
@@ -112,6 +167,30 @@ const CampaignsCampaignIdEditRoute = CampaignsCampaignIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => CampaignsCampaignIdRoute,
 } as any)
+const TenantsTenantIdUsersIndexRoute =
+  TenantsTenantIdUsersIndexRouteImport.update({
+    id: '/tenants/$tenantId/users/',
+    path: '/tenants/$tenantId/users/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const TenantsTenantIdUsersInviteRoute =
+  TenantsTenantIdUsersInviteRouteImport.update({
+    id: '/tenants/$tenantId/users/invite',
+    path: '/tenants/$tenantId/users/invite',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const PlatformTenantsTenantIdEditRoute =
+  PlatformTenantsTenantIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => PlatformTenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdUsersUserIdEditRoute =
+  TenantsTenantIdUsersUserIdEditRouteImport.update({
+    id: '/tenants/$tenantId/users/$userId/edit',
+    path: '/tenants/$tenantId/users/$userId/edit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,12 +204,23 @@ export interface FileRoutesByFullPath {
   '/campaigns/new': typeof CampaignsNewRoute
   '/dashboard': typeof Dashboard_layoutRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
-  '/dashboard/venues': typeof DashboardVenuesRoute
+  '/platform/$tenantId': typeof PlatformTenantIdRoute
+  '/audience': typeof AudienceIndexRoute
   '/campaigns': typeof CampaignsIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/geofencing': typeof GeofencingIndexRoute
+  '/notifications': typeof NotificationsIndexRoute
   '/campaigns/$campaignId/edit': typeof CampaignsCampaignIdEditRoute
   '/campaigns/$campaignId/locations': typeof CampaignsCampaignIdLocationsRoute
+  '/dashboard/venues/new': typeof DashboardVenuesNewRoute
+  '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRouteWithChildren
+  '/platform/tenants/new': typeof PlatformTenantsNewRoute
+  '/dashboard/venues': typeof DashboardVenuesIndexRoute
   '/platform/tenants': typeof PlatformTenantsIndexRoute
+  '/platform/tenants/$tenantId/edit': typeof PlatformTenantsTenantIdEditRoute
+  '/tenants/$tenantId/users/invite': typeof TenantsTenantIdUsersInviteRoute
+  '/tenants/$tenantId/users': typeof TenantsTenantIdUsersIndexRoute
+  '/tenants/$tenantId/users/$userId/edit': typeof TenantsTenantIdUsersUserIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,11 +234,22 @@ export interface FileRoutesByTo {
   '/campaigns/new': typeof CampaignsNewRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
-  '/dashboard/venues': typeof DashboardVenuesRoute
+  '/platform/$tenantId': typeof PlatformTenantIdRoute
+  '/audience': typeof AudienceIndexRoute
   '/campaigns': typeof CampaignsIndexRoute
+  '/geofencing': typeof GeofencingIndexRoute
+  '/notifications': typeof NotificationsIndexRoute
   '/campaigns/$campaignId/edit': typeof CampaignsCampaignIdEditRoute
   '/campaigns/$campaignId/locations': typeof CampaignsCampaignIdLocationsRoute
+  '/dashboard/venues/new': typeof DashboardVenuesNewRoute
+  '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRouteWithChildren
+  '/platform/tenants/new': typeof PlatformTenantsNewRoute
+  '/dashboard/venues': typeof DashboardVenuesIndexRoute
   '/platform/tenants': typeof PlatformTenantsIndexRoute
+  '/platform/tenants/$tenantId/edit': typeof PlatformTenantsTenantIdEditRoute
+  '/tenants/$tenantId/users/invite': typeof TenantsTenantIdUsersInviteRoute
+  '/tenants/$tenantId/users': typeof TenantsTenantIdUsersIndexRoute
+  '/tenants/$tenantId/users/$userId/edit': typeof TenantsTenantIdUsersUserIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,14 +262,26 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/campaigns/$campaignId': typeof CampaignsCampaignIdRouteWithChildren
   '/campaigns/new': typeof CampaignsNewRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/__layout': typeof Dashboard_layoutRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
-  '/dashboard/venues': typeof DashboardVenuesRoute
+  '/platform/$tenantId': typeof PlatformTenantIdRoute
+  '/audience/': typeof AudienceIndexRoute
   '/campaigns/': typeof CampaignsIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/geofencing/': typeof GeofencingIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/campaigns/$campaignId/edit': typeof CampaignsCampaignIdEditRoute
   '/campaigns/$campaignId/locations': typeof CampaignsCampaignIdLocationsRoute
+  '/dashboard/venues/new': typeof DashboardVenuesNewRoute
+  '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRouteWithChildren
+  '/platform/tenants/new': typeof PlatformTenantsNewRoute
+  '/dashboard/venues/': typeof DashboardVenuesIndexRoute
   '/platform/tenants/': typeof PlatformTenantsIndexRoute
+  '/platform/tenants/$tenantId/edit': typeof PlatformTenantsTenantIdEditRoute
+  '/tenants/$tenantId/users/invite': typeof TenantsTenantIdUsersInviteRoute
+  '/tenants/$tenantId/users/': typeof TenantsTenantIdUsersIndexRoute
+  '/tenants/$tenantId/users/$userId/edit': typeof TenantsTenantIdUsersUserIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -184,12 +297,23 @@ export interface FileRouteTypes {
     | '/campaigns/new'
     | '/dashboard'
     | '/dashboard/audience'
-    | '/dashboard/venues'
+    | '/platform/$tenantId'
+    | '/audience'
     | '/campaigns'
     | '/dashboard/'
+    | '/geofencing'
+    | '/notifications'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId/locations'
+    | '/dashboard/venues/new'
+    | '/platform/tenants/$tenantId'
+    | '/platform/tenants/new'
+    | '/dashboard/venues'
     | '/platform/tenants'
+    | '/platform/tenants/$tenantId/edit'
+    | '/tenants/$tenantId/users/invite'
+    | '/tenants/$tenantId/users'
+    | '/tenants/$tenantId/users/$userId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -203,11 +327,22 @@ export interface FileRouteTypes {
     | '/campaigns/new'
     | '/dashboard'
     | '/dashboard/audience'
-    | '/dashboard/venues'
+    | '/platform/$tenantId'
+    | '/audience'
     | '/campaigns'
+    | '/geofencing'
+    | '/notifications'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId/locations'
+    | '/dashboard/venues/new'
+    | '/platform/tenants/$tenantId'
+    | '/platform/tenants/new'
+    | '/dashboard/venues'
     | '/platform/tenants'
+    | '/platform/tenants/$tenantId/edit'
+    | '/tenants/$tenantId/users/invite'
+    | '/tenants/$tenantId/users'
+    | '/tenants/$tenantId/users/$userId/edit'
   id:
     | '__root__'
     | '/'
@@ -219,14 +354,26 @@ export interface FileRouteTypes {
     | '/signup'
     | '/campaigns/$campaignId'
     | '/campaigns/new'
+    | '/dashboard'
     | '/dashboard/__layout'
     | '/dashboard/audience'
-    | '/dashboard/venues'
+    | '/platform/$tenantId'
+    | '/audience/'
     | '/campaigns/'
     | '/dashboard/'
+    | '/geofencing/'
+    | '/notifications/'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId/locations'
+    | '/dashboard/venues/new'
+    | '/platform/tenants/$tenantId'
+    | '/platform/tenants/new'
+    | '/dashboard/venues/'
     | '/platform/tenants/'
+    | '/platform/tenants/$tenantId/edit'
+    | '/tenants/$tenantId/users/invite'
+    | '/tenants/$tenantId/users/'
+    | '/tenants/$tenantId/users/$userId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -239,13 +386,29 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   CampaignsCampaignIdRoute: typeof CampaignsCampaignIdRouteWithChildren
   CampaignsNewRoute: typeof CampaignsNewRoute
-  DashboardVenuesRoute: typeof DashboardVenuesRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
+  PlatformTenantIdRoute: typeof PlatformTenantIdRoute
+  AudienceIndexRoute: typeof AudienceIndexRoute
   CampaignsIndexRoute: typeof CampaignsIndexRoute
+  GeofencingIndexRoute: typeof GeofencingIndexRoute
+  NotificationsIndexRoute: typeof NotificationsIndexRoute
+  PlatformTenantsTenantIdRoute: typeof PlatformTenantsTenantIdRouteWithChildren
+  PlatformTenantsNewRoute: typeof PlatformTenantsNewRoute
   PlatformTenantsIndexRoute: typeof PlatformTenantsIndexRoute
+  TenantsTenantIdUsersInviteRoute: typeof TenantsTenantIdUsersInviteRoute
+  TenantsTenantIdUsersIndexRoute: typeof TenantsTenantIdUsersIndexRoute
+  TenantsTenantIdUsersUserIdEditRoute: typeof TenantsTenantIdUsersUserIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -295,6 +458,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/notifications/': {
+      id: '/notifications/'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/geofencing/': {
+      id: '/geofencing/'
+      path: '/geofencing'
+      fullPath: '/geofencing'
+      preLoaderRoute: typeof GeofencingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/': {
       id: '/dashboard/'
       path: '/'
@@ -309,11 +486,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CampaignsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/venues': {
-      id: '/dashboard/venues'
-      path: '/dashboard/venues'
-      fullPath: '/dashboard/venues'
-      preLoaderRoute: typeof DashboardVenuesRouteImport
+    '/audience/': {
+      id: '/audience/'
+      path: '/audience'
+      fullPath: '/audience'
+      preLoaderRoute: typeof AudienceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/$tenantId': {
+      id: '/platform/$tenantId'
+      path: '/platform/$tenantId'
+      fullPath: '/platform/$tenantId'
+      preLoaderRoute: typeof PlatformTenantIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/audience': {
@@ -325,7 +509,7 @@ declare module '@tanstack/react-router' {
     }
     '/dashboard/__layout': {
       id: '/dashboard/__layout'
-      path: ''
+      path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof Dashboard_layoutRouteImport
       parentRoute: typeof DashboardRoute
@@ -351,6 +535,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformTenantsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/venues/': {
+      id: '/dashboard/venues/'
+      path: '/venues'
+      fullPath: '/dashboard/venues'
+      preLoaderRoute: typeof DashboardVenuesIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/platform/tenants/new': {
+      id: '/platform/tenants/new'
+      path: '/platform/tenants/new'
+      fullPath: '/platform/tenants/new'
+      preLoaderRoute: typeof PlatformTenantsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/tenants/$tenantId': {
+      id: '/platform/tenants/$tenantId'
+      path: '/platform/tenants/$tenantId'
+      fullPath: '/platform/tenants/$tenantId'
+      preLoaderRoute: typeof PlatformTenantsTenantIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/venues/new': {
+      id: '/dashboard/venues/new'
+      path: '/venues/new'
+      fullPath: '/dashboard/venues/new'
+      preLoaderRoute: typeof DashboardVenuesNewRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/campaigns/$campaignId/locations': {
       id: '/campaigns/$campaignId/locations'
       path: '/locations'
@@ -364,6 +576,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/campaigns/$campaignId/edit'
       preLoaderRoute: typeof CampaignsCampaignIdEditRouteImport
       parentRoute: typeof CampaignsCampaignIdRoute
+    }
+    '/tenants/$tenantId/users/': {
+      id: '/tenants/$tenantId/users/'
+      path: '/tenants/$tenantId/users'
+      fullPath: '/tenants/$tenantId/users'
+      preLoaderRoute: typeof TenantsTenantIdUsersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tenants/$tenantId/users/invite': {
+      id: '/tenants/$tenantId/users/invite'
+      path: '/tenants/$tenantId/users/invite'
+      fullPath: '/tenants/$tenantId/users/invite'
+      preLoaderRoute: typeof TenantsTenantIdUsersInviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/tenants/$tenantId/edit': {
+      id: '/platform/tenants/$tenantId/edit'
+      path: '/edit'
+      fullPath: '/platform/tenants/$tenantId/edit'
+      preLoaderRoute: typeof PlatformTenantsTenantIdEditRouteImport
+      parentRoute: typeof PlatformTenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/users/$userId/edit': {
+      id: '/tenants/$tenantId/users/$userId/edit'
+      path: '/tenants/$tenantId/users/$userId/edit'
+      fullPath: '/tenants/$tenantId/users/$userId/edit'
+      preLoaderRoute: typeof TenantsTenantIdUsersUserIdEditRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -381,6 +621,40 @@ const CampaignsCampaignIdRouteChildren: CampaignsCampaignIdRouteChildren = {
 const CampaignsCampaignIdRouteWithChildren =
   CampaignsCampaignIdRoute._addFileChildren(CampaignsCampaignIdRouteChildren)
 
+interface DashboardRouteChildren {
+  Dashboard_layoutRoute: typeof Dashboard_layoutRoute
+  DashboardAudienceRoute: typeof DashboardAudienceRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardVenuesNewRoute: typeof DashboardVenuesNewRoute
+  DashboardVenuesIndexRoute: typeof DashboardVenuesIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  Dashboard_layoutRoute: Dashboard_layoutRoute,
+  DashboardAudienceRoute: DashboardAudienceRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardVenuesNewRoute: DashboardVenuesNewRoute,
+  DashboardVenuesIndexRoute: DashboardVenuesIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
+interface PlatformTenantsTenantIdRouteChildren {
+  PlatformTenantsTenantIdEditRoute: typeof PlatformTenantsTenantIdEditRoute
+}
+
+const PlatformTenantsTenantIdRouteChildren: PlatformTenantsTenantIdRouteChildren =
+  {
+    PlatformTenantsTenantIdEditRoute: PlatformTenantsTenantIdEditRoute,
+  }
+
+const PlatformTenantsTenantIdRouteWithChildren =
+  PlatformTenantsTenantIdRoute._addFileChildren(
+    PlatformTenantsTenantIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
@@ -391,9 +665,18 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   CampaignsCampaignIdRoute: CampaignsCampaignIdRouteWithChildren,
   CampaignsNewRoute: CampaignsNewRoute,
-  DashboardVenuesRoute: DashboardVenuesRoute,
+  DashboardRoute: DashboardRouteWithChildren,
+  PlatformTenantIdRoute: PlatformTenantIdRoute,
+  AudienceIndexRoute: AudienceIndexRoute,
   CampaignsIndexRoute: CampaignsIndexRoute,
+  GeofencingIndexRoute: GeofencingIndexRoute,
+  NotificationsIndexRoute: NotificationsIndexRoute,
+  PlatformTenantsTenantIdRoute: PlatformTenantsTenantIdRouteWithChildren,
+  PlatformTenantsNewRoute: PlatformTenantsNewRoute,
   PlatformTenantsIndexRoute: PlatformTenantsIndexRoute,
+  TenantsTenantIdUsersInviteRoute: TenantsTenantIdUsersInviteRoute,
+  TenantsTenantIdUsersIndexRoute: TenantsTenantIdUsersIndexRoute,
+  TenantsTenantIdUsersUserIdEditRoute: TenantsTenantIdUsersUserIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

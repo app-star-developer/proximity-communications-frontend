@@ -127,7 +127,7 @@ function DashboardOverview() {
 						<p className="text-sm text-slate-400">
 							{user
 								? `Here's the latest campaign telemetry for ${user.tenantSlug}.`
-								: "Review the latest campaign telemetry across all tenants."}
+								: "Review the latest campaign telemetry across all organizations."}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -246,7 +246,7 @@ function DashboardOverview() {
 										dataKey="count"
 										stroke="#2dd4bf"
 										strokeWidth={2}
-										fill={`url(#${gradientId})`}
+										fill={"url(#${gradientId})"}
 										dot={false}
 										isAnimationActive={false}
 									/>
