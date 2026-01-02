@@ -6,6 +6,7 @@
     "dev": "vite --port 3037 --host",
     "build": "vite build && tsc",
     "serve": "vite preview",
+    "deploy": "pnpm run build && firebase deploy",
     "test": "vitest run",
     "format": "biome format",
     "lint": "biome lint",

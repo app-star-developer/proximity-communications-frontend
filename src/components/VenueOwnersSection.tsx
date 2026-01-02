@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { useId, useState } from 'react'
 import { venueOwnersApi } from '../api/modules/venueOwners'
-import { queryKeys } from '../api/queryKeys'
 import type {
 	ApiErrorResponse,
 	CreateVenueOwnerRequest,
@@ -163,7 +162,6 @@ export function VenueOwnersSection({ venueId }: VenueOwnersSectionProps) {
 						<VenueOwnerCard
 							key={owner.id}
 							owner={owner}
-							venueId={venueId}
 							onResendPassword={() => resendPasswordMutation.mutate(owner.id)}
 							onDelete={() => handleDelete(owner.id, owner.email)}
 							isResending={resendPasswordMutation.isPending}
@@ -178,14 +176,12 @@ export function VenueOwnersSection({ venueId }: VenueOwnersSectionProps) {
 
 function VenueOwnerCard({
 	owner,
-	venueId,
 	onResendPassword,
 	onDelete,
 	isResending,
 	isDeleting,
 }: {
 	owner: VenueOwner
-	venueId: string
 	onResendPassword: () => void
 	onDelete: () => void
 	isResending: boolean

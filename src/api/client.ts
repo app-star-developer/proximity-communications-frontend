@@ -7,9 +7,9 @@ import axios, {
 import { authStore } from "../state/authStore";
 import type { ApiErrorResponse, AuthTokenResponse } from "./types";
 
-const API_BASE_URL = "http://localhost:3000/api/v1";
-//import.meta.env.VITE_API_BASE_URL ??
-("https://proximity-communications-216192893907.europe-west1.run.app/api/v1");
+const API_BASE_URL = 
+import.meta.env.VITE_API_BASE_URL ??
+"https://proximity-communications-216192893907.europe-west1.run.app/api/v1"
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
 	_retry?: boolean;

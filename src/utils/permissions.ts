@@ -2,7 +2,7 @@ import type { AuthenticatedUser, AccessLevel } from '../api/types'
 
 export function hasAccessLevel(
   user: AuthenticatedUser | null | undefined,
-  requiredLevel: AccessLevel,
+  // requiredLevel: AccessLevel,
 ): boolean {
   if (!user) return false
 

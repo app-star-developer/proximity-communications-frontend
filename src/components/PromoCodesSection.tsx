@@ -330,7 +330,7 @@ function PromoCodeCard({
 }
 
 function CreatePromoCodeForm({
-	campaignId,
+	
 	onSubmit,
 	onCancel,
 	isPending,

@@ -14,7 +14,6 @@ import { queryKeys } from '../../api/queryKeys'
 import type { ApiErrorResponse, Campaign, VenueFilters, VenuePrimaryType } from '../../api/types'
 import { useUIStore } from '../../state/uiStore'
 import { useVenueOptions } from '../../hooks/useVenues'
-import { VenueSelector } from '../../components/VenueSelector'
 
 const STATUS_OPTIONS: Campaign['status'][] = [
   'draft',

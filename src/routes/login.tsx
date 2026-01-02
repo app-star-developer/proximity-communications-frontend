@@ -70,10 +70,9 @@ function LoginRoute() {
 	const search = useSearch({ from: Route.fullPath });
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
-	const tenantInputId = useId();
 	const emailInputId = useId();
 	const passwordInputId = useId();
-	const [tenant, setTenant] = useState("");
+	const [tenant] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [isPasswordVisible, setIsPasswordVisible] = useState(false);

@@ -21,7 +21,7 @@ export function useInfiniteVenues() {
   return useInfiniteQuery<VenueListResponse>({
     queryKey: queryKeys.venues({ infinite: true }),
     queryFn: async ({ pageParam = 0 }) => {
-      return await venuesApi.list({ limit, offset: pageParam })
+      return await venuesApi.list({ limit, offset: pageParam as number })
     },
     getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.pagination) {

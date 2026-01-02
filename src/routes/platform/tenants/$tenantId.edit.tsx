@@ -5,7 +5,6 @@ import {
   redirect,
   useNavigate,
 } from '@tanstack/react-router'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import type { QueryClient } from '@tanstack/react-query'
 
@@ -51,7 +50,6 @@ export const Route = createFileRoute('/platform/tenants/$tenantId/edit')({
 function TenantEditRoute() {
   const navigate = useNavigate()
   const loaderData = Route.useLoaderData()
-  const queryClient = useQueryClient()
   const { pushToast } = useUIStore()
   const tenantQuery = useTenant(loaderData.id)
   const tenant = tenantQuery.data ?? loaderData

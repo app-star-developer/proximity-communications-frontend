@@ -20,7 +20,6 @@ interface NotificationConfigFormProps {
 }
 
 export function NotificationConfigForm({
-	campaignId,
 	initialData,
 	onSave,
 	onCancel,
@@ -52,7 +51,7 @@ export function NotificationConfigForm({
 
 	const insertVariable = (
 		variable: string,
-		inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>,
+		inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
 	) => {
 		if (!inputRef.current) return
 
@@ -229,7 +228,7 @@ export function NotificationConfigForm({
 							className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-mono text-slate-200 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 						/>
 						<p className="text-xs text-slate-500">
-							Default: app://campaign/{{campaignId}}?venue={{venueId}}
+							Default: app://campaign/campaignId?venue=venueId
 						</p>
 					</div>
 

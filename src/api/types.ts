@@ -153,6 +153,7 @@ export interface Venue extends CreateVenueRequest {
 	tenantId: string;
 	createdAt: string;
 	updatedAt: string;
+	primaryType: string;
 	ownerCreationInitiated?: boolean; // Indicates owner account creation started
 }
 
@@ -599,7 +600,7 @@ export interface RetryOwnerCreationResponse {
 }
 
 // Promo Code Types
-export type PromoCodeStatus = "active" | "revoked" | "expired";
+export type PromoCodeStatus = "active" | "revoked" | "expired" | 'draft';
 export type PromoCodeFormat = "human_readable" | "alphanumeric" | "numeric";
 
 export interface PromoCodeGenerationSettings {

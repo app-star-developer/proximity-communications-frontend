@@ -239,7 +239,7 @@ function ToastContainer() {
 		return null;
 	}
 	return (
-		<div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-full max-w-sm flex-col gap-3 px-4">
+		<div className="pointer-events-none fixed bottom-4 right-4 z-100 flex w-full max-w-sm flex-col gap-3 px-4">
 			{toasts.map((toast) => (
 				<div
 					key={toast.id}
