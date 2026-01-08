@@ -17,5 +17,6 @@ export const queryKeys = {
   audienceDevices: (params?: unknown) => ['audience', 'devices', params ?? {}] as const,
   audienceDevice: (deviceId: string) => ['audience', 'device', deviceId] as const,
   audienceSegmentation: () => ['audience', 'segmentation'] as const,
+  uploads: (params?: unknown) => ['uploads', params ?? {}] as const,
 }
 

@@ -99,6 +99,7 @@ function GlobalNav() {
 								{ to: "/dashboard/venues", label: "Venues" },
 								{ to: "/audience", label: "Audience" },
 								{ to: "/notifications", label: "Notifications" },
+								{ to: "/media-library", label: "Media Library" },
 								// { to: "/geofencing", label: "Geofencing" },
 								...(isPlatformUser(user)
 									? [{ to: "/platform/tenants", label: "Platform" }]

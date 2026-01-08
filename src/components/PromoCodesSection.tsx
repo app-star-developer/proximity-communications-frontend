@@ -11,6 +11,7 @@ import type {
 	PromoCodeStatus,
 } from '../api/types'
 import { useUIStore } from '../state/uiStore'
+import { MediaLibrary } from './MediaLibrary'
 
 interface PromoCodesSectionProps {
 	campaignId: string
@@ -353,7 +354,10 @@ function CreatePromoCodeForm({
 		maxUsesPerUser: 1,
 		validFrom: '',
 		validTo: '',
+		imageUrl: '',
 	})
+	const [showMediaLibrary, setShowMediaLibrary] = useState(false)
+	const imageUrlId = useId()
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -364,6 +368,7 @@ function CreatePromoCodeForm({
 			maxUsesPerUser: formState.maxUsesPerUser || undefined,
 			validFrom: formState.validFrom || undefined,
 			validTo: formState.validTo || undefined,
+			imageUrl: formState.imageUrl || undefined,
 		})
 	}
 
@@ -536,7 +541,10 @@ function EditPromoCodeForm({
 		validTo: promoCode.validTo
 			? format(parseISO(promoCode.validTo), "yyyy-MM-dd'T'HH:mm")
 			: '',
+		imageUrl: promoCode.imageUrl || '',
 	})
+	const [showMediaLibrary, setShowMediaLibrary] = useState(false)
+	const imageUrlId = useId()
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -545,6 +553,7 @@ function EditPromoCodeForm({
 			status: formState.status,
 			validFrom: formState.validFrom || null,
 			validTo: formState.validTo || null,
+			imageUrl: formState.imageUrl || null,
 		})
 	}
 
@@ -642,7 +651,71 @@ function EditPromoCodeForm({
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 					/>
 				</div>
+				<div className="space-y-2 sm:col-span-2">
+					<label
+						htmlFor={imageUrlId}
+						className="text-xs uppercase tracking-wide text-slate-500"
+					>
+						Promo Image URL
+					</label>
+					<div className="flex gap-2">
+						<input
+							id={imageUrlId}
+							type="text"
+							value={formState.imageUrl}
+							onChange={(e) =>
+								setFormState((prev) => ({ ...prev, imageUrl: e.target.value }))
+							}
+							placeholder="https://storage.googleapis.com/..."
+							className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+						/>
+						<button
+							type="button"
+							onClick={() => setShowMediaLibrary(true)}
+							className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700"
+						>
+							Media Library
+						</button>
+					</div>
+					{formState.imageUrl && (
+						<div className="mt-2 aspect-video w-32 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+							<img
+								src={formState.imageUrl}
+								alt="Preview"
+								className="h-full w-full object-cover"
+							/>
+						</div>
+					)}
+				</div>
 			</div>
+
+			{showMediaLibrary && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+					<div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
+						<div className="flex items-center justify-between border-b border-slate-800 p-4">
+							<h3 className="text-lg font-semibold text-white">
+								Select Promo Image
+							</h3>
+							<button
+								type="button"
+								onClick={() => setShowMediaLibrary(false)}
+								className="text-slate-400 hover:text-white"
+							>
+								✕
+							</button>
+						</div>
+						<div className="h-full overflow-y-auto p-4 pb-20">
+							<MediaLibrary
+								folder="promo-codes"
+								onSelect={(url) => {
+									setFormState((prev) => ({ ...prev, imageUrl: url }));
+									setShowMediaLibrary(false);
+								}}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
 			<div className="flex items-center justify-end gap-3">
 				<button
 					type="button"

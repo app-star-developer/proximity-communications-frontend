@@ -14,6 +14,7 @@ import { queryKeys } from '../../api/queryKeys'
 import type { ApiErrorResponse, Campaign, VenueFilters, VenuePrimaryType } from '../../api/types'
 import { useUIStore } from '../../state/uiStore'
 import { useVenueOptions } from '../../hooks/useVenues'
+import { MediaLibrary } from '../../components/MediaLibrary'
 
 const STATUS_OPTIONS: Campaign['status'][] = [
   'draft',
@@ -90,6 +91,7 @@ function NewCampaignRoute() {
   const radiusId = useId()
   const budgetId = useId()
   const venueSearchId = useId()
+  const imageUrlId = useId()
 
   const [step, setStep] = useState(0)
   const [venueSelectionMode, setVenueSelectionMode] = useState<'ids' | 'filters'>('ids')
@@ -104,7 +106,9 @@ function NewCampaignRoute() {
     budgetCents: '',
     venueIds: [] as string[],
     venueFilters: {} as VenueFilters,
+    imageUrl: '',
   })
+  const [showMediaLibrary, setShowMediaLibrary] = useState(false)
 
   const [venueSearch, setVenueSearch] = useState('')
   const venueOptionsQuery = useVenueOptions(venueSearch)
@@ -186,6 +190,7 @@ function NewCampaignRoute() {
       budgetCents: formState.budgetCents ? Number(formState.budgetCents) : undefined,
       venueIds: venueSelectionMode === 'ids' && formState.venueIds.length > 0 ? formState.venueIds : undefined,
       venueFilters: venueSelectionMode === 'filters' && Object.keys(formState.venueFilters).length > 0 ? formState.venueFilters : undefined,
+      imageUrl: formState.imageUrl || undefined,
     }
 
     mutation.mutate(payload)
@@ -267,8 +272,61 @@ function NewCampaignRoute() {
                 className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
               />
             </div>
+            <div className="space-y-2 md:col-span-2">
+              <label htmlFor={imageUrlId} className="text-xs uppercase tracking-wide text-slate-500">
+                Campaign Image URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id={imageUrlId}
+                  name="imageUrl"
+                  value={formState.imageUrl}
+                  onChange={handleChange}
+                  placeholder="https://storage.googleapis.com/..."
+                  className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowMediaLibrary(true)}
+                  className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+                >
+                  Media Library
+                </button>
+              </div>
+              {formState.imageUrl && (
+                <div className="mt-2 aspect-video w-full max-w-xs overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                  <img src={formState.imageUrl} alt="Preview" className="h-full w-full object-cover" />
+                </div>
+              )}
+            </div>
           </section>
         ) : null}
+
+        {showMediaLibrary && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+            <div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-800 p-4">
+                <h3 className="text-lg font-semibold text-white">Select Campaign Image</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowMediaLibrary(false)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="h-full overflow-y-auto p-4 pb-20">
+                <MediaLibrary
+                  folder="campaigns"
+                  onSelect={(url) => {
+                    setFormState((prev) => ({ ...prev, imageUrl: url }))
+                    setShowMediaLibrary(false)
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {step === 1 ? (
           <section className="grid gap-4 md:grid-cols-2">

@@ -27,6 +27,7 @@ import {
 	useDeleteCampaignNotificationConfig,
 } from "../../hooks/useCampaigns";
 import { useVenueOptions } from "../../hooks/useVenues";
+import { MediaLibrary } from "../../components/MediaLibrary";
 import { useUIStore } from "../../state/uiStore";
 import { requireAuth } from "../../utils/requireAuth";
 import { NotificationConfigForm } from "../../components/NotificationConfigForm";
@@ -153,6 +154,7 @@ function CampaignEditRoute() {
 	const budgetId = useId();
 	const timezoneId = useId();
 	const venueSearchId = useId();
+	const imageUrlId = useId();
 
 	// Determine initial venue selection mode based on campaign data
 	const initialVenueMode: "ids" | "filters" =
@@ -167,6 +169,7 @@ function CampaignEditRoute() {
 	const venueOptionsQuery = useVenueOptions(venueSearch);
 	const venueOptions = venueOptionsQuery.data?.data ?? [];
 	const initializedRef = useRef<string | null>(null);
+	const [showMediaLibrary, setShowMediaLibrary] = useState(false);
 
 	// Initialize form state safely
 	const getInitialFormState = useCallback((camp: typeof campaign) => {
@@ -182,6 +185,7 @@ function CampaignEditRoute() {
 				timezone: "",
 				venueIds: [] as string[],
 				venueFilters: {} as VenueFilters,
+				imageUrl: "",
 				initialMode: "ids" as "ids" | "filters",
 			}
 		}
@@ -202,6 +206,7 @@ function CampaignEditRoute() {
 			timezone: camp.timezone ?? "",
 			venueIds: Array.isArray(camp.venueIds) ? camp.venueIds : [],
 			venueFilters: camp.venueFilters ?? ({} as VenueFilters),
+			imageUrl: camp.imageUrl ?? "",
 			initialMode: newMode,
 		}
 	}, []);
@@ -218,6 +223,7 @@ function CampaignEditRoute() {
 		timezone: initialFormData.timezone,
 		venueIds: initialFormData.venueIds,
 		venueFilters: initialFormData.venueFilters,
+		imageUrl: initialFormData.imageUrl,
 	});
 
 	// Only initialize once when campaign data is first loaded
@@ -236,6 +242,7 @@ function CampaignEditRoute() {
 				timezone: formData.timezone,
 				venueIds: formData.venueIds,
 				venueFilters: formData.venueFilters,
+				imageUrl: formData.imageUrl,
 			})
 			initializedRef.current = campaign.id;
 		}
@@ -325,6 +332,7 @@ function CampaignEditRoute() {
 				Object.keys(formState.venueFilters).length > 0
 					? formState.venueFilters
 					: undefined,
+			imageUrl: formState.imageUrl || undefined,
 		}
 
 		mutation.mutate(payload);
@@ -400,7 +408,69 @@ function CampaignEditRoute() {
 							placeholder="Tell collaborators what this promotion covers."
 						/>
 					</div>
+					<div className="space-y-2 md:col-span-2">
+						<label
+							htmlFor={imageUrlId}
+							className="text-xs uppercase tracking-wide text-slate-500"
+						>
+							Campaign Image URL
+						</label>
+						<div className="flex gap-2">
+							<input
+								id={imageUrlId}
+								name="imageUrl"
+								value={formState.imageUrl}
+								onChange={handleChange}
+								placeholder="https://storage.googleapis.com/..."
+								className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+							/>
+							<button
+								type="button"
+								onClick={() => setShowMediaLibrary(true)}
+								className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+							>
+								Media Library
+							</button>
+						</div>
+						{formState.imageUrl && (
+							<div className="mt-2 aspect-video w-full max-w-xs overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+								<img
+									src={formState.imageUrl}
+									alt="Preview"
+									className="h-full w-full object-cover"
+								/>
+							</div>
+						)}
+					</div>
 				</div>
+
+				{showMediaLibrary && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+						<div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
+							<div className="flex items-center justify-between border-b border-slate-800 p-4">
+								<h3 className="text-lg font-semibold text-white">
+									Select Campaign Image
+								</h3>
+								<button
+									type="button"
+									onClick={() => setShowMediaLibrary(false)}
+									className="text-slate-400 hover:text-white"
+								>
+									✕
+								</button>
+							</div>
+							<div className="h-full overflow-y-auto p-4 pb-20">
+								<MediaLibrary
+									folder="campaigns"
+									onSelect={(url) => {
+										setFormState((prev) => ({ ...prev, imageUrl: url }));
+										setShowMediaLibrary(false);
+									}}
+								/>
+							</div>
+						</div>
+					</div>
+				)}
 
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="space-y-2">

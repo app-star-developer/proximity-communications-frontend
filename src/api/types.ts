@@ -92,6 +92,7 @@ export interface Campaign {
 	radiusMeters?: number | null;
 	timezone?: string | null;
 	budgetCents?: number | null;
+	imageUrl?: string | null;
 	venueIds: string[];
 	venueFilters?: VenueFilters | null;
 	createdAt: string;
@@ -434,7 +435,8 @@ export interface CreateCampaignRequest {
 	timezone?: string;
 	startAt?: string;
 	endAt?: string;
-	budgetCents?: number;
+	budgetCents?: number | null;
+	imageUrl?: string;
 	venueIds?: string[];
 	venueFilters?: VenueFilters;
 	status?: Campaign["status"];
@@ -621,6 +623,7 @@ export interface PromoCode {
 	maxUsesPerUser?: number;
 	validFrom?: string | null;
 	validTo?: string | null;
+	imageUrl?: string | null;
 	generationSettings?: PromoCodeGenerationSettings | null;
 	createdAt: string;
 	updatedAt: string;
@@ -637,6 +640,7 @@ export interface CreatePromoCodeRequest {
 	maxUsesPerUser?: number;
 	validFrom?: string;
 	validTo?: string;
+	imageUrl?: string;
 	generationSettings?: PromoCodeGenerationSettings;
 }
 
@@ -645,6 +649,7 @@ export interface UpdatePromoCodeRequest {
 	status?: PromoCodeStatus;
 	validFrom?: string | null;
 	validTo?: string | null;
+	imageUrl?: string | null;
 }
 
 export interface RegeneratePromoCodeRequest {
@@ -710,3 +715,28 @@ export interface PromoCodeStatusResponse {
 		name: string;
 	};
 }
+
+// Media Upload Types
+export interface MediaUpload {
+	id: string;
+	tenantId: string;
+	name: string;
+	originalName: string;
+	folder: 'campaigns' | 'promo-codes';
+	imageUrl: string;
+	sizeBytes: number;
+	contentType: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface MediaUploadListResponse {
+	data: MediaUpload[];
+	pagination: {
+		limit: number;
+		offset: number;
+		count: number;
+	};
+}
+
+export interface MediaUploadResponse extends MediaUpload {}
