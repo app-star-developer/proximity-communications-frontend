@@ -356,8 +356,6 @@ function CreatePromoCodeForm({
 		validTo: '',
 		imageUrl: '',
 	})
-	const [showMediaLibrary, setShowMediaLibrary] = useState(false)
-	const imageUrlId = useId()
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()

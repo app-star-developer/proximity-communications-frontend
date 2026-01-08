@@ -1,7 +1,6 @@
 import { api } from "../client";
 import type {
     MediaUpload,
-	MediaUploadListResponse,
 	MediaUploadResponse,
 } from "../types";
 
