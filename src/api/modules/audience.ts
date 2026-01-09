@@ -14,6 +14,8 @@ export interface AudienceDevicesParams {
   campaignId?: string
   venueId?: string
   activeDays?: number
+  platform?: string
+  osName?: string
 }
 
 export interface AudienceGrowthParams {
@@ -51,6 +53,7 @@ export const audienceApi = {
     const response = await api.get<AudienceDevicesResponse>('/audience/devices', {
       params,
     })
+    console.log('devices', response.data)
     return response.data
   },
 

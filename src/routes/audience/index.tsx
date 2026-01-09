@@ -37,12 +37,14 @@ function AudienceRoute() {
   const campaignFilterId = useId()
   const venueFilterId = useId()
   const activeDaysFilterId = useId()
+  const platformFilterId = useId()
 
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('')
   const [selectedVenueId, setSelectedVenueId] = useState<string>('')
   const [activeDays, setActiveDays] = useState<number | undefined>(undefined)
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('')
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
 
   // Fetch data
@@ -69,6 +71,7 @@ function AudienceRoute() {
     campaignId: selectedCampaignId || undefined,
     venueId: selectedVenueId || undefined,
     activeDays,
+    platform: selectedPlatform || undefined,
   })
 
   const deviceDetailsQuery = useAudienceDeviceDetails(selectedDeviceId ?? '')
@@ -343,7 +346,7 @@ function AudienceRoute() {
         </header>
 
         {/* Filters */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <div>
             <label
               htmlFor={searchId}
@@ -430,6 +433,28 @@ function AudienceRoute() {
               <option value="30">Active in last 30 days</option>
             </select>
           </div>
+          <div>
+            <label
+              htmlFor={platformFilterId}
+              className="text-xs uppercase tracking-wide text-slate-500"
+            >
+              Platform
+            </label>
+            <select
+              id={platformFilterId}
+              value={selectedPlatform}
+              onChange={(e) => {
+                setSelectedPlatform(e.target.value)
+                handleFilterChange()
+              }}
+              className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+            >
+              <option value="">All platforms</option>
+              <option value="ios">iOS</option>
+              <option value="android">Android</option>
+              <option value="web">Web</option>
+            </select>
+          </div>
         </div>
 
         {/* Devices Table */}
@@ -438,6 +463,7 @@ function AudienceRoute() {
             <thead className="bg-slate-900/70 text-xs uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3">Device</th>
+                <th className="px-4 py-3">Platform / OS</th>
                 <th className="px-4 py-3">First seen</th>
                 <th className="px-4 py-3">Last seen</th>
                 <th className="px-4 py-3">Events</th>
@@ -457,10 +483,34 @@ function AudienceRoute() {
                       <p className="font-medium text-white">
                         {device.name || device.email || 'Unknown'}
                       </p>
-                      {device.radarUserId && (
+                      {device.modelName ? (
+                        <p className="text-xs text-slate-500">
+                          {device.brand && `${device.brand} `}{device.modelName}
+                        </p>
+                      ) : device.radarUserId && (
                         <p className="text-xs text-slate-500 font-mono">
                           {device.radarUserId}
                         </p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1">
+                      {device.platform && (
+                        <span className={`inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                          device.platform === 'ios'
+                            ? 'bg-blue-500/20 text-blue-300'
+                            : device.platform === 'android'
+                            ? 'bg-green-500/20 text-green-300'
+                            : 'bg-slate-500/20 text-slate-300'
+                        }`}>
+                          {device.platform.toUpperCase()}
+                        </span>
+                      )}
+                      {(device.osName || device.osVersion) && (
+                        <span className="text-xs text-slate-400">
+                          {device.osName}{device.osVersion && ` ${device.osVersion}`}
+                        </span>
                       )}
                     </div>
                   </td>
@@ -484,7 +534,7 @@ function AudienceRoute() {
               {devices.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-10 text-center text-slate-500"
                   >
                     {devicesQuery.isLoading

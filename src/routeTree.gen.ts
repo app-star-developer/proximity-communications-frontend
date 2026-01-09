@@ -8,6 +8,8 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
+import { createFileRoute } from '@tanstack/react-router'
+
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectTenantRouteImport } from './routes/select-tenant'
@@ -39,6 +41,13 @@ import { Route as TenantsTenantIdUsersInviteRouteImport } from './routes/tenants
 import { Route as PlatformTenantsTenantIdEditRouteImport } from './routes/platform/tenants/$tenantId.edit'
 import { Route as TenantsTenantIdUsersUserIdEditRouteImport } from './routes/tenants/$tenantId/users/$userId.edit'
 
+const DashboardRouteImport = createFileRoute('/dashboard')()
+
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -262,6 +271,7 @@ export interface FileRoutesById {
   '/_protected/media-library': typeof ProtectedMediaLibraryRoute
   '/campaigns/$campaignId': typeof CampaignsCampaignIdRouteWithChildren
   '/campaigns/new': typeof CampaignsNewRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/__layout': typeof Dashboard_layoutRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
   '/platform/$tenantId': typeof PlatformTenantIdRoute
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/_protected/media-library'
     | '/campaigns/$campaignId'
     | '/campaigns/new'
+    | '/dashboard'
     | '/dashboard/__layout'
     | '/dashboard/audience'
     | '/platform/$tenantId'
@@ -388,6 +399,7 @@ export interface RootRouteChildren {
   ProtectedMediaLibraryRoute: typeof ProtectedMediaLibraryRoute
   CampaignsCampaignIdRoute: typeof CampaignsCampaignIdRouteWithChildren
   CampaignsNewRoute: typeof CampaignsNewRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   PlatformTenantIdRoute: typeof PlatformTenantIdRoute
   AudienceIndexRoute: typeof AudienceIndexRoute
   CampaignsIndexRoute: typeof CampaignsIndexRoute
@@ -403,6 +415,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -503,7 +522,7 @@ declare module '@tanstack/react-router' {
     }
     '/dashboard/__layout': {
       id: '/dashboard/__layout'
-      path: ''
+      path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof Dashboard_layoutRouteImport
       parentRoute: typeof DashboardRoute
@@ -622,6 +641,26 @@ const CampaignsCampaignIdRouteChildren: CampaignsCampaignIdRouteChildren = {
 const CampaignsCampaignIdRouteWithChildren =
   CampaignsCampaignIdRoute._addFileChildren(CampaignsCampaignIdRouteChildren)
 
+interface DashboardRouteChildren {
+  Dashboard_layoutRoute: typeof Dashboard_layoutRoute
+  DashboardAudienceRoute: typeof DashboardAudienceRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardVenuesNewRoute: typeof DashboardVenuesNewRoute
+  DashboardVenuesIndexRoute: typeof DashboardVenuesIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  Dashboard_layoutRoute: Dashboard_layoutRoute,
+  DashboardAudienceRoute: DashboardAudienceRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardVenuesNewRoute: DashboardVenuesNewRoute,
+  DashboardVenuesIndexRoute: DashboardVenuesIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 interface PlatformTenantsTenantIdRouteChildren {
   PlatformTenantsTenantIdEditRoute: typeof PlatformTenantsTenantIdEditRoute
 }
@@ -647,6 +686,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedMediaLibraryRoute: ProtectedMediaLibraryRoute,
   CampaignsCampaignIdRoute: CampaignsCampaignIdRouteWithChildren,
   CampaignsNewRoute: CampaignsNewRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   PlatformTenantIdRoute: PlatformTenantIdRoute,
   AudienceIndexRoute: AudienceIndexRoute,
   CampaignsIndexRoute: CampaignsIndexRoute,

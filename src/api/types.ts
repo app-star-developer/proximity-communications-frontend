@@ -515,6 +515,18 @@ export interface Device {
 	eventCount: number;
 	campaignsEngaged: string[];
 	venuesEngaged: string[];
+	// Device info fields
+	brand?: string | null;
+	manufacturer?: string | null;
+	modelName?: string | null;
+	osName?: string | null;
+	osVersion?: string | null;
+	deviceType?: string | null;
+	isDevice?: boolean;
+	appVersion?: string | null;
+	language?: string | null;
+	timezone?: string | null;
+	platform?: string | null;
 }
 
 export interface AudienceDevicesResponse {
