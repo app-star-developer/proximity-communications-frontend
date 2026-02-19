@@ -202,7 +202,7 @@ function AudienceInsightsRoute() {
                       border: '1px solid rgba(148,163,184,0.2)',
                       color: '#e2e8f0',
                     }}
-                    formatter={(value: number, name: string, payload) => [
+                    formatter={(value: number, name: string, payload: any) => [
                       value.toLocaleString(),
                       payload?.payload?.label ?? name,
                     ]}

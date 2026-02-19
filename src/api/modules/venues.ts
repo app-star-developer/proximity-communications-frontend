@@ -9,6 +9,7 @@ import type {
   VenuePlacesPreviewResponse,
   VenueManualImportRequest,
   VenuePrimaryType,
+  VenueType,
 } from '../types'
 
 export interface VenueListParams {
@@ -74,5 +75,10 @@ export const venuesApi = {
       payload,
     )
     return response.data
+  },
+
+  async getVenueTypes() {
+    const response = await api.get<{ data: VenueType[] }>('/venue-types')
+    return response.data.data
   },
 }

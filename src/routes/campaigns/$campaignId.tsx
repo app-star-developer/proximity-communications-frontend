@@ -259,6 +259,38 @@ function CampaignDetailRoute() {
                 </button>
               </li>
             ) : null}
+            {campaign.status === 'active' ? (
+               <li>
+                 <button
+                   type="button"
+                   onClick={() => {
+                      if (window.confirm('Are you sure you want to end this campaign immediately?')) {
+                        campaignsApi.update(campaign.id, { status: 'completed' })
+                          .then(() => {
+                            queryClient.invalidateQueries({ queryKey: queryKeys.campaign(campaign.id) })
+                            pushToast({
+                              id: crypto.randomUUID(),
+                              title: 'Campaign Ended',
+                              description: 'The campaign has been marked as completed.',
+                              intent: 'success',
+                            })
+                          })
+                          .catch(() => {
+                             pushToast({
+                              id: crypto.randomUUID(),
+                              title: 'Error',
+                              description: 'Failed to end campaign.',
+                              intent: 'danger',
+                            })
+                          })
+                      }
+                   }}
+                   className="w-full rounded-lg border border-amber-500/50 px-3 py-2 text-left text-amber-200 transition hover:bg-amber-500/10"
+                 >
+                   End Campaign
+                 </button>
+               </li>
+            ) : null}
           </ul>
         </aside>
       </section>
@@ -270,7 +302,9 @@ function CampaignDetailRoute() {
               Linked venues
             </h2>
             <p className="text-xs text-slate-500">
-              {campaign.venueIds.length} venues targeted by this promotion.
+              {campaign.isAllVenues
+                ? "Targeting all organization venues."
+                : `${campaign.totalVenuesCount} venue${campaign.totalVenuesCount !== 1 ? 's' : ''} targeted.`}
             </p>
           </div>
           <Link
@@ -281,22 +315,30 @@ function CampaignDetailRoute() {
             Adjust venues
           </Link>
         </header>
-        {campaign.venueIds.length === 0 ? (
+        {campaign.totalVenuesCount === 0 && !campaign.isAllVenues ? (
           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/40 px-4 py-6 text-center text-sm text-slate-400">
             No venues have been attached yet. Sync from HappyHour locations or
             import via CSV.
           </div>
         ) : (
           <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {campaign.venueIds.map((venueId) => (
+            {campaign?.venues?.map((venue) => (
               <li
-                key={venueId}
+                key={venue.id}
                 className="rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-xs text-slate-300"
               >
-                <span className="font-medium text-slate-200">Venue ID:</span>{" "}
-                {venueId}
+                <div className="font-medium text-slate-200">{venue.name}</div>
+                <div className="text-slate-500">
+                  {venue.city ? `${venue.city} • ` : ''}
+                  <span className="capitalize">{venue.primaryType || 'Venue'}</span>
+                </div>
               </li>
             ))}
+            {campaign.totalVenuesCount > campaign.venues.length && (
+              <li className="flex items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-900/30 px-4 py-3 text-xs text-slate-400">
+                + {campaign.totalVenuesCount - campaign.venues.length} more venues
+              </li>
+            )}
           </ul>
         )}
       </section>

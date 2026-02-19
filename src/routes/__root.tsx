@@ -23,7 +23,7 @@ function RootComponent() {
 			<GlobalNav />
 			<ToastContainer />
 			<Outlet />
-			{!import.meta.env.PROD && (
+			{/* {!import.meta.env.PROD && (
 				<TanStackDevtools
 					config={{
 						position: "bottom-right",
@@ -35,7 +35,7 @@ function RootComponent() {
 						},
 					]}
 				/>
-			)}
+			)} */}
 		</AppLayout>
 	);
 }

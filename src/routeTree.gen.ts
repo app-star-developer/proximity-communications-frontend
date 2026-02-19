@@ -8,8 +8,6 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from '@tanstack/react-router'
-
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SelectTenantRouteImport } from './routes/select-tenant'
@@ -17,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as NotificationsIndexRouteImport } from './routes/notifications/index'
 import { Route as GeofencingIndexRouteImport } from './routes/geofencing/index'
@@ -25,7 +24,6 @@ import { Route as CampaignsIndexRouteImport } from './routes/campaigns/index'
 import { Route as AudienceIndexRouteImport } from './routes/audience/index'
 import { Route as PlatformTenantIdRouteImport } from './routes/platform/$tenantId'
 import { Route as DashboardAudienceRouteImport } from './routes/dashboard/audience'
-import { Route as Dashboard_layoutRouteImport } from './routes/dashboard/__layout'
 import { Route as CampaignsNewRouteImport } from './routes/campaigns/new'
 import { Route as CampaignsCampaignIdRouteImport } from './routes/campaigns/$campaignId'
 import { Route as ProtectedMediaLibraryRouteImport } from './routes/_protected/media-library'
@@ -41,13 +39,6 @@ import { Route as TenantsTenantIdUsersInviteRouteImport } from './routes/tenants
 import { Route as PlatformTenantsTenantIdEditRouteImport } from './routes/platform/tenants/$tenantId.edit'
 import { Route as TenantsTenantIdUsersUserIdEditRouteImport } from './routes/tenants/$tenantId/users/$userId.edit'
 
-const DashboardRouteImport = createFileRoute('/dashboard')()
-
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -76,6 +67,11 @@ const LoginRoute = LoginRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -116,10 +112,6 @@ const PlatformTenantIdRoute = PlatformTenantIdRouteImport.update({
 const DashboardAudienceRoute = DashboardAudienceRouteImport.update({
   id: '/audience',
   path: '/audience',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const Dashboard_layoutRoute = Dashboard_layoutRouteImport.update({
-  id: '/__layout',
   getParentRoute: () => DashboardRoute,
 } as any)
 const CampaignsNewRoute = CampaignsNewRouteImport.update({
@@ -200,6 +192,7 @@ const TenantsTenantIdUsersUserIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
@@ -209,24 +202,23 @@ export interface FileRoutesByFullPath {
   '/media-library': typeof ProtectedMediaLibraryRoute
   '/campaigns/$campaignId': typeof CampaignsCampaignIdRouteWithChildren
   '/campaigns/new': typeof CampaignsNewRoute
-  '/dashboard': typeof Dashboard_layoutRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
   '/platform/$tenantId': typeof PlatformTenantIdRoute
-  '/audience': typeof AudienceIndexRoute
-  '/campaigns': typeof CampaignsIndexRoute
+  '/audience/': typeof AudienceIndexRoute
+  '/campaigns/': typeof CampaignsIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/geofencing': typeof GeofencingIndexRoute
-  '/notifications': typeof NotificationsIndexRoute
+  '/geofencing/': typeof GeofencingIndexRoute
+  '/notifications/': typeof NotificationsIndexRoute
   '/campaigns/$campaignId/edit': typeof CampaignsCampaignIdEditRoute
   '/campaigns/$campaignId/locations': typeof CampaignsCampaignIdLocationsRoute
   '/dashboard/venues/new': typeof DashboardVenuesNewRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRouteWithChildren
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
-  '/dashboard/venues': typeof DashboardVenuesIndexRoute
-  '/platform/tenants': typeof PlatformTenantsIndexRoute
+  '/dashboard/venues/': typeof DashboardVenuesIndexRoute
+  '/platform/tenants/': typeof PlatformTenantsIndexRoute
   '/platform/tenants/$tenantId/edit': typeof PlatformTenantsTenantIdEditRoute
   '/tenants/$tenantId/users/invite': typeof TenantsTenantIdUsersInviteRoute
-  '/tenants/$tenantId/users': typeof TenantsTenantIdUsersIndexRoute
+  '/tenants/$tenantId/users/': typeof TenantsTenantIdUsersIndexRoute
   '/tenants/$tenantId/users/$userId/edit': typeof TenantsTenantIdUsersUserIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -240,11 +232,11 @@ export interface FileRoutesByTo {
   '/media-library': typeof ProtectedMediaLibraryRoute
   '/campaigns/$campaignId': typeof CampaignsCampaignIdRouteWithChildren
   '/campaigns/new': typeof CampaignsNewRoute
-  '/dashboard': typeof DashboardIndexRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
   '/platform/$tenantId': typeof PlatformTenantIdRoute
   '/audience': typeof AudienceIndexRoute
   '/campaigns': typeof CampaignsIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
   '/geofencing': typeof GeofencingIndexRoute
   '/notifications': typeof NotificationsIndexRoute
   '/campaigns/$campaignId/edit': typeof CampaignsCampaignIdEditRoute
@@ -262,6 +254,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
@@ -271,8 +264,6 @@ export interface FileRoutesById {
   '/_protected/media-library': typeof ProtectedMediaLibraryRoute
   '/campaigns/$campaignId': typeof CampaignsCampaignIdRouteWithChildren
   '/campaigns/new': typeof CampaignsNewRoute
-  '/dashboard': typeof DashboardRouteWithChildren
-  '/dashboard/__layout': typeof Dashboard_layoutRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
   '/platform/$tenantId': typeof PlatformTenantIdRoute
   '/audience/': typeof AudienceIndexRoute
@@ -296,6 +287,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -305,24 +297,23 @@ export interface FileRouteTypes {
     | '/media-library'
     | '/campaigns/$campaignId'
     | '/campaigns/new'
-    | '/dashboard'
     | '/dashboard/audience'
     | '/platform/$tenantId'
-    | '/audience'
-    | '/campaigns'
+    | '/audience/'
+    | '/campaigns/'
     | '/dashboard/'
-    | '/geofencing'
-    | '/notifications'
+    | '/geofencing/'
+    | '/notifications/'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId/locations'
     | '/dashboard/venues/new'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
-    | '/dashboard/venues'
-    | '/platform/tenants'
+    | '/dashboard/venues/'
+    | '/platform/tenants/'
     | '/platform/tenants/$tenantId/edit'
     | '/tenants/$tenantId/users/invite'
-    | '/tenants/$tenantId/users'
+    | '/tenants/$tenantId/users/'
     | '/tenants/$tenantId/users/$userId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -336,11 +327,11 @@ export interface FileRouteTypes {
     | '/media-library'
     | '/campaigns/$campaignId'
     | '/campaigns/new'
-    | '/dashboard'
     | '/dashboard/audience'
     | '/platform/$tenantId'
     | '/audience'
     | '/campaigns'
+    | '/dashboard'
     | '/geofencing'
     | '/notifications'
     | '/campaigns/$campaignId/edit'
@@ -357,6 +348,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/dashboard'
     | '/forgot-password'
     | '/login'
     | '/onboarding'
@@ -366,8 +358,6 @@ export interface FileRouteTypes {
     | '/_protected/media-library'
     | '/campaigns/$campaignId'
     | '/campaigns/new'
-    | '/dashboard'
-    | '/dashboard/__layout'
     | '/dashboard/audience'
     | '/platform/$tenantId'
     | '/audience/'
@@ -390,6 +380,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -399,7 +390,6 @@ export interface RootRouteChildren {
   ProtectedMediaLibraryRoute: typeof ProtectedMediaLibraryRoute
   CampaignsCampaignIdRoute: typeof CampaignsCampaignIdRouteWithChildren
   CampaignsNewRoute: typeof CampaignsNewRoute
-  DashboardRoute: typeof DashboardRouteWithChildren
   PlatformTenantIdRoute: typeof PlatformTenantIdRoute
   AudienceIndexRoute: typeof AudienceIndexRoute
   CampaignsIndexRoute: typeof CampaignsIndexRoute
@@ -415,13 +405,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -464,6 +447,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -474,14 +464,14 @@ declare module '@tanstack/react-router' {
     '/notifications/': {
       id: '/notifications/'
       path: '/notifications'
-      fullPath: '/notifications'
+      fullPath: '/notifications/'
       preLoaderRoute: typeof NotificationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/geofencing/': {
       id: '/geofencing/'
       path: '/geofencing'
-      fullPath: '/geofencing'
+      fullPath: '/geofencing/'
       preLoaderRoute: typeof GeofencingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -495,14 +485,14 @@ declare module '@tanstack/react-router' {
     '/campaigns/': {
       id: '/campaigns/'
       path: '/campaigns'
-      fullPath: '/campaigns'
+      fullPath: '/campaigns/'
       preLoaderRoute: typeof CampaignsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audience/': {
       id: '/audience/'
       path: '/audience'
-      fullPath: '/audience'
+      fullPath: '/audience/'
       preLoaderRoute: typeof AudienceIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -518,13 +508,6 @@ declare module '@tanstack/react-router' {
       path: '/audience'
       fullPath: '/dashboard/audience'
       preLoaderRoute: typeof DashboardAudienceRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/__layout': {
-      id: '/dashboard/__layout'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof Dashboard_layoutRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/campaigns/new': {
@@ -551,14 +534,14 @@ declare module '@tanstack/react-router' {
     '/platform/tenants/': {
       id: '/platform/tenants/'
       path: '/platform/tenants'
-      fullPath: '/platform/tenants'
+      fullPath: '/platform/tenants/'
       preLoaderRoute: typeof PlatformTenantsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/venues/': {
       id: '/dashboard/venues/'
       path: '/venues'
-      fullPath: '/dashboard/venues'
+      fullPath: '/dashboard/venues/'
       preLoaderRoute: typeof DashboardVenuesIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
@@ -600,7 +583,7 @@ declare module '@tanstack/react-router' {
     '/tenants/$tenantId/users/': {
       id: '/tenants/$tenantId/users/'
       path: '/tenants/$tenantId/users'
-      fullPath: '/tenants/$tenantId/users'
+      fullPath: '/tenants/$tenantId/users/'
       preLoaderRoute: typeof TenantsTenantIdUsersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -628,6 +611,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardRouteChildren {
+  DashboardAudienceRoute: typeof DashboardAudienceRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardVenuesNewRoute: typeof DashboardVenuesNewRoute
+  DashboardVenuesIndexRoute: typeof DashboardVenuesIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardAudienceRoute: DashboardAudienceRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardVenuesNewRoute: DashboardVenuesNewRoute,
+  DashboardVenuesIndexRoute: DashboardVenuesIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 interface CampaignsCampaignIdRouteChildren {
   CampaignsCampaignIdEditRoute: typeof CampaignsCampaignIdEditRoute
   CampaignsCampaignIdLocationsRoute: typeof CampaignsCampaignIdLocationsRoute
@@ -640,26 +641,6 @@ const CampaignsCampaignIdRouteChildren: CampaignsCampaignIdRouteChildren = {
 
 const CampaignsCampaignIdRouteWithChildren =
   CampaignsCampaignIdRoute._addFileChildren(CampaignsCampaignIdRouteChildren)
-
-interface DashboardRouteChildren {
-  Dashboard_layoutRoute: typeof Dashboard_layoutRoute
-  DashboardAudienceRoute: typeof DashboardAudienceRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
-  DashboardVenuesNewRoute: typeof DashboardVenuesNewRoute
-  DashboardVenuesIndexRoute: typeof DashboardVenuesIndexRoute
-}
-
-const DashboardRouteChildren: DashboardRouteChildren = {
-  Dashboard_layoutRoute: Dashboard_layoutRoute,
-  DashboardAudienceRoute: DashboardAudienceRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
-  DashboardVenuesNewRoute: DashboardVenuesNewRoute,
-  DashboardVenuesIndexRoute: DashboardVenuesIndexRoute,
-}
-
-const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
-  DashboardRouteChildren,
-)
 
 interface PlatformTenantsTenantIdRouteChildren {
   PlatformTenantsTenantIdEditRoute: typeof PlatformTenantsTenantIdEditRoute
@@ -677,6 +658,7 @@ const PlatformTenantsTenantIdRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
@@ -686,7 +668,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedMediaLibraryRoute: ProtectedMediaLibraryRoute,
   CampaignsCampaignIdRoute: CampaignsCampaignIdRouteWithChildren,
   CampaignsNewRoute: CampaignsNewRoute,
-  DashboardRoute: DashboardRouteWithChildren,
   PlatformTenantIdRoute: PlatformTenantIdRoute,
   AudienceIndexRoute: AudienceIndexRoute,
   CampaignsIndexRoute: CampaignsIndexRoute,

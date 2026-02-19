@@ -6,10 +6,10 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 
-import { requireAuth } from "../../utils/requireAuth";
-import { LighthouseLogo } from "../../components/LighthouseLogo";
+import { requireAuth } from "@/utils/requireAuth";
+import { LighthouseLogo } from "@/components/LighthouseLogo";
 
-export const Route = createFileRoute("/dashboard/__layout")({
+export const Route = createFileRoute("/dashboard")({
 	loader: async ({ context, location }) => {
 		const { queryClient } = context as { queryClient: QueryClient };
 		return requireAuth({

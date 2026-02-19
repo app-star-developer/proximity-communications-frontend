@@ -33,7 +33,7 @@ interface CampaignSearch {
   page?: number
 }
 
-export const Route = createFileRoute('/campaigns/')({
+export const Route = createFileRoute("/campaigns/")({
   component: CampaignsRoute,
   validateSearch: (search: Record<string, unknown>): CampaignSearch => {
     const status =
@@ -89,7 +89,7 @@ function CampaignsRoute() {
 
   const handleStatusChange = (status: string) => {
     navigate({
-      to: Route.fullPath,
+      to: "/campaigns",
       search: {
         status: status as CampaignSearch['status'],
         page: 1,
@@ -101,7 +101,7 @@ function CampaignsRoute() {
     const currentPage = search.page ?? 1
     const nextPage = direction === 'next' ? currentPage + 1 : Math.max(1, currentPage - 1)
     navigate({
-      to: Route.fullPath,
+      to: "/campaigns",
       search: {
         status: search.status ?? 'all',
         page: nextPage,
@@ -159,7 +159,7 @@ function CampaignsRoute() {
         <div className="mt-6">
           {campaignQuery.isLoading ? (
             <CampaignSkeleton />
-          ) : filteredCampaigns.length === 0 ? (
+          ) : filteredCampaigns?.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -188,7 +188,7 @@ function CampaignsRoute() {
               onClick={() => handlePaginate('next')}
               disabled={
                 campaignQuery.isFetching ||
-                (campaignQuery.data?.data.length ?? 0) < PAGE_SIZE
+                (campaignQuery.data?.data?.length ?? 0) < PAGE_SIZE
               }
               className="rounded-lg border border-slate-700 px-3 py-1 text-slate-300 transition hover:border-cyan-500 hover:text-cyan-300 disabled:cursor-not-allowed disabled:border-slate-800 disabled:text-slate-600"
             >
@@ -257,7 +257,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
         <div>
           <dt className="font-medium text-slate-500">Venues</dt>
           <dd className="mt-1 text-slate-200">
-            {campaign.venueIds.length}
+            {campaign?.venues?.length}
           </dd>
         </div>
       </dl>

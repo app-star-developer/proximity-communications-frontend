@@ -68,6 +68,24 @@ export const TEMPLATE_VARIABLES: TemplateVariable[] = [
 		description: 'Venue UUID',
 		example: '550e8400-e29b-41d4-a716-446655440001',
 	},
+	{
+		name: 'promoCode',
+		label: 'Promo Code',
+		description: 'The promo code string',
+		example: 'SUMMER2025',
+	},
+	{
+		name: 'promoDiscountValue',
+		label: 'Discount Value',
+		description: 'The value of the discount',
+		example: '20',
+	},
+	{
+		name: 'promoDiscountType',
+		label: 'Discount Type',
+		description: 'The type of the discount (percentage/fixed)',
+		example: 'percentage',
+	},
 ]
 
 interface TemplateVariablePickerProps {

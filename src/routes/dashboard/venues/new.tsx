@@ -12,6 +12,71 @@ import type {
 	VenueIngestionResult,
 } from "../../../api/types";
 import { useUIStore } from "../../../state/uiStore";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import Select from "react-select";
+import { getData } from "country-list";
+
+const VENUE_PRIMARY_TYPES = [
+	{ label: "Hotel / Lodging", value: "hotel" },
+	{ label: "Restaurant", value: "restaurant" },
+	{ label: "Bar / Nightclub", value: "bar" },
+	{ label: "Cafe", value: "cafe" },
+	{ label: "Mall / Shopping Center", value: "mall" },
+	{ label: "Retail Store", value: "retail" },
+	{ label: "Entertainment (Cinema, Museum)", value: "entertainment" },
+	{ label: "Other", value: "other" },
+] as const;
+
+const BUSINESS_STATUS_OPTIONS = [
+	{ label: "Operational", value: "OPERATIONAL" },
+	{ label: "Temporarily Closed", value: "CLOSED_TEMPORARILY" },
+	{ label: "Permanently Closed", value: "CLOSED_PERMANENTLY" },
+] as const;
+
+const SYSTEM_STATUS_OPTIONS = [
+	{ label: "Active", value: "active" },
+	{ label: "Draft", value: "draft" },
+	{ label: "Inactive", value: "inactive" },
+] as const;
+
+const COUNTRY_OPTIONS = getData().map((c: { name: string; code: string }) => ({
+	label: c.name,
+	value: c.code,
+}));
+
+const TIMEZONE_OPTIONS = Intl.supportedValuesOf("timeZone").map((tz: string) => ({
+	label: tz,
+	value: tz,
+}));
+
+const manualVenueFormSchema = z.object({
+	name: z.string().min(1, "Name is required"),
+	addressLine1: z.string().optional(),
+	city: z.string().optional(),
+	countryCode: z.string().length(2, "Select a valid country"),
+	latitude: z.coerce.number().min(-90).max(90).optional(),
+	longitude: z.coerce.number().min(-180).max(180).optional(),
+	primaryType: z.enum([
+		"hotel",
+		"restaurant",
+		"bar",
+		"cafe",
+		"mall",
+		"retail",
+		"entertainment",
+		"other",
+	]),
+	status: z.enum(["active", "draft", "inactive"]),
+	businessStatus: z
+		.enum(["OPERATIONAL", "CLOSED_TEMPORARILY", "CLOSED_PERMANENTLY"])
+		.optional(),
+	timezone: z.string().min(1, "Timezone is required"),
+	ownerEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+});
+
+type ManualVenueFormValues = z.infer<typeof manualVenueFormSchema>;
 
 type AddVenueMethod = "manual" | "google_places" | "csv";
 
@@ -178,42 +243,39 @@ function ManualVenueForm({
 	onSuccess: (message: string) => Promise<void>;
 	onError: (error: unknown, fallback: string) => void;
 }) {
-	const nameId = useId();
-	const cityId = useId();
-	const countryId = useId();
-	const timezoneId = useId();
-	const address1Id = useId();
-	const ownerEmailId = useId();
-
-	const [formState, setFormState] = useState({
-		name: "",
-		addressLine1: "",
-		city: "",
-		countryCode: "",
-		timezone: "",
-		ownerEmail: "",
+	const {
+		register,
+		control,
+		handleSubmit,
+		formState: { errors, isSubmitting },
+	} = useForm<ManualVenueFormValues>({
+		resolver: zodResolver(manualVenueFormSchema),
+		defaultValues: {
+			status: "active",
+			countryCode: "NG",
+			timezone: "Africa/Lagos",
+			primaryType: "other",
+			name: "",
+			addressLine1: "",
+			city: "",
+			ownerEmail: "",
+		},
 	});
 
 	const createMutation = useMutation({
 		mutationFn: (payload: CreateVenueRequest) => venuesApi.create(payload),
 	});
 
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const { name, value } = e.target;
-		setFormState((prev) => ({ ...prev, [name]: value }));
-	};
-
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
+	const onSubmit = async (data: ManualVenueFormValues) => {
 		try {
 			const result = await createMutation.mutateAsync({
-				name: formState.name.trim(),
-				addressLine1: formState.addressLine1.trim() || undefined,
-				city: formState.city.trim() || undefined,
-				countryCode: formState.countryCode.trim() || undefined,
-				timezone: formState.timezone.trim() || undefined,
-				ownerEmail: formState.ownerEmail.trim() || undefined,
-				status: "active",
+				...data,
+				addressLine1: data.addressLine1?.trim() || undefined,
+				city: data.city?.trim() || undefined,
+				ownerEmail: data.ownerEmail?.trim() || undefined,
+				metadata: data.businessStatus
+					? { business_status: data.businessStatus }
+					: undefined,
 			});
 			const message = result.ownerCreationInitiated
 				? "Venue created successfully. Owner account creation initiated."
@@ -224,131 +286,257 @@ function ManualVenueForm({
 		}
 	};
 
+	const selectStyles = {
+		control: (base: any) => ({
+			...base,
+			backgroundColor: "#0f172a", // slate-900
+			borderColor: "#334155", // slate-700
+			"&:hover": {
+				borderColor: "#06b6d4", // cyan-500
+			},
+		}),
+		menu: (base: any) => ({
+			...base,
+			backgroundColor: "#0f172a",
+			border: "1px solid #334155",
+		}),
+		option: (base: any, state: any) => ({
+			...base,
+			backgroundColor: state.isFocused ? "#1e293b" : "transparent",
+			color: state.isSelected ? "#06b6d4" : "#e2e8f0",
+			"&:active": {
+				backgroundColor: "#334155",
+			},
+		}),
+		singleValue: (base: any) => ({
+			...base,
+			color: "#e2e8f0",
+		}),
+		input: (base: any) => ({
+			...base,
+			color: "#e2e8f0",
+		}),
+	};
+
 	return (
 		<div className="space-y-4">
 			<div>
 				<h2 className="text-base font-semibold text-white">Manual entry</h2>
 				<p className="mt-1 text-xs text-slate-500">
-					Minimal fields to get started. You can extend this later.
+					Enter all required venue details to ensure high data quality.
 				</p>
 			</div>
 
-			<form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+			<form
+				onSubmit={handleSubmit(onSubmit)}
+				className="grid gap-4 md:grid-cols-2"
+			>
+				{/* Name */}
 				<div className="space-y-2 md:col-span-2">
-					<label
-						htmlFor={nameId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
+					<label className="text-xs uppercase tracking-wide text-slate-500">
 						Name *
 					</label>
 					<input
-						id={nameId}
-						name="name"
-						value={formState.name}
-						onChange={handleChange}
-						required
+						{...register("name")}
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 						placeholder="e.g. Guinness Bar Lagos"
 					/>
+					{errors.name && (
+						<p className="text-xs text-red-400">{errors.name.message}</p>
+					)}
 				</div>
 
+				{/* Primary Type */}
+				<div className="space-y-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">
+						Primary Type *
+					</label>
+					<Controller
+						name="primaryType"
+						control={control}
+						render={({ field }) => (
+							<Select
+								{...field}
+								options={VENUE_PRIMARY_TYPES}
+								value={VENUE_PRIMARY_TYPES.find((opt: { value: string }) => opt.value === field.value)}
+								onChange={(val: any) => field.onChange(val?.value)}
+								styles={selectStyles}
+							/>
+						)}
+					/>
+					{errors.primaryType && (
+						<p className="text-xs text-red-400">{errors.primaryType.message}</p>
+					)}
+				</div>
+
+				{/* System Status */}
+				<div className="space-y-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">
+						System Status *
+					</label>
+					<Controller
+						name="status"
+						control={control}
+						render={({ field }) => (
+							<Select
+								{...field}
+								options={SYSTEM_STATUS_OPTIONS}
+								value={SYSTEM_STATUS_OPTIONS.find((opt: { value: string }) => opt.value === field.value)}
+								onChange={(val: any) => field.onChange(val?.value)}
+								styles={selectStyles}
+							/>
+						)}
+					/>
+				</div>
+
+				{/* Business Status */}
+				<div className="space-y-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">
+						Business Status
+					</label>
+					<Controller
+						name="businessStatus"
+						control={control}
+						render={({ field }) => (
+							<Select
+								{...field}
+								isClearable
+								options={BUSINESS_STATUS_OPTIONS}
+								value={BUSINESS_STATUS_OPTIONS.find((opt: { value: string }) => opt.value === field.value)}
+								onChange={(val: any) => field.onChange(val?.value)}
+								styles={selectStyles}
+							/>
+						)}
+					/>
+				</div>
+
+				{/* Country */}
+				<div className="space-y-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">
+						Country *
+					</label>
+					<Controller
+						name="countryCode"
+						control={control}
+						render={({ field }) => (
+							<Select
+								{...field}
+								options={COUNTRY_OPTIONS}
+								value={COUNTRY_OPTIONS.find((opt: { value: string }) => opt.value === field.value)}
+								onChange={(val: any) => field.onChange(val?.value)}
+								styles={selectStyles}
+							/>
+						)}
+					/>
+					{errors.countryCode && (
+						<p className="text-xs text-red-400">{errors.countryCode.message}</p>
+					)}
+				</div>
+
+				{/* Timezone */}
 				<div className="space-y-2 md:col-span-2">
-					<label
-						htmlFor={address1Id}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						Address line 1 (optional)
+					<label className="text-xs uppercase tracking-wide text-slate-500">
+						Timezone *
+					</label>
+					<Controller
+						name="timezone"
+						control={control}
+						render={({ field }) => (
+							<Select
+								{...field}
+								options={TIMEZONE_OPTIONS}
+								value={TIMEZONE_OPTIONS.find((opt: { value: string }) => opt.value === field.value)}
+								onChange={(val: any) => field.onChange(val?.value)}
+								styles={selectStyles}
+							/>
+						)}
+					/>
+					{errors.timezone && (
+						<p className="text-xs text-red-400">{errors.timezone.message}</p>
+					)}
+				</div>
+
+				{/* Address */}
+				<div className="space-y-2 md:col-span-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">
+						Address line 1
 					</label>
 					<input
-						id={address1Id}
-						name="addressLine1"
-						value={formState.addressLine1}
-						onChange={handleChange}
+						{...register("addressLine1")}
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 						placeholder="123 Main St"
 					/>
 				</div>
 
+				{/* City */}
 				<div className="space-y-2">
-					<label
-						htmlFor={cityId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						City (optional)
+					<label className="text-xs uppercase tracking-wide text-slate-500">
+						City
 					</label>
 					<input
-						id={cityId}
-						name="city"
-						value={formState.city}
-						onChange={handleChange}
+						{...register("city")}
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 						placeholder="Lagos"
 					/>
 				</div>
 
-				<div className="space-y-2">
-					<label
-						htmlFor={countryId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						Country code (optional)
-					</label>
-					<input
-						id={countryId}
-						name="countryCode"
-						value={formState.countryCode}
-						onChange={handleChange}
-						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-						placeholder="NG"
-						maxLength={2}
-					/>
+				{/* Lat/Long */}
+				<div className="grid grid-cols-2 gap-3">
+					<div className="space-y-2">
+						<label className="text-xs uppercase tracking-wide text-slate-500">
+							Latitude
+						</label>
+						<input
+							{...register("latitude")}
+							type="number"
+							step="any"
+							className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+							placeholder="0.000"
+						/>
+					</div>
+					<div className="space-y-2">
+						<label className="text-xs uppercase tracking-wide text-slate-500">
+							Longitude
+						</label>
+						<input
+							{...register("longitude")}
+							type="number"
+							step="any"
+							className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+							placeholder="0.000"
+						/>
+					</div>
 				</div>
 
+				{/* Owner Email */}
 				<div className="space-y-2 md:col-span-2">
-					<label
-						htmlFor={timezoneId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						Timezone (optional)
-					</label>
-					<input
-						id={timezoneId}
-						name="timezone"
-						value={formState.timezone}
-						onChange={handleChange}
-						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-						placeholder="Africa/Lagos"
-					/>
-				</div>
-
-				<div className="space-y-2 md:col-span-2">
-					<label
-						htmlFor={ownerEmailId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
+					<label className="text-xs uppercase tracking-wide text-slate-500">
 						Owner Email (optional)
 					</label>
 					<input
-						id={ownerEmailId}
-						name="ownerEmail"
+						{...register("ownerEmail")}
 						type="email"
-						value={formState.ownerEmail}
-						onChange={handleChange}
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 						placeholder="owner@venue.com"
 					/>
+					{errors.ownerEmail && (
+						<p className="text-xs text-red-400">{errors.ownerEmail.message}</p>
+					)}
 					<p className="text-xs text-slate-500">
-						If provided, a venue owner account will be created automatically with an initial password sent via email.
+						If provided, a venue owner account will be created automatically with
+						an initial password sent via email.
 					</p>
 				</div>
 
 				<div className="md:col-span-2 flex items-center justify-end gap-3 pt-2">
 					<button
 						type="submit"
-						disabled={createMutation.isPending}
+						disabled={createMutation.isPending || isSubmitting}
 						className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 disabled:cursor-not-allowed disabled:bg-cyan-500/50"
 					>
-						{createMutation.isPending ? "Creating…" : "Create venue"}
+						{createMutation.isPending || isSubmitting
+							? "Creating…"
+							: "Create venue"}
 					</button>
 				</div>
 			</form>
@@ -401,6 +589,7 @@ function GooglePlacesVenueForm({
 					longitude: v.longitude ?? undefined,
 					externalId: v.externalId || undefined,
 					status: "active",
+					primaryType: (v.metadata?.primaryType as VenuePrimaryType) || "other",
 					metadata: v.metadata ?? undefined,
 					// Extract ownerEmail from metadata if present
 					ownerEmail:
@@ -603,6 +792,24 @@ function CsvUploadVenueForm({
 				<p className="mt-1 text-xs text-slate-500">
 					Upload a CSV file or paste CSV content below.
 				</p>
+			</div>
+
+			<div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+				<p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+					Supported CSV Headers
+				</p>
+				<div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-[10px] font-mono text-slate-500">
+					<div>
+						<span className="text-slate-300">name</span> (req)
+					</div>
+					<div>primaryType</div>
+					<div>status</div>
+					<div>business_status</div>
+					<div>country_code</div>
+					<div>timezone</div>
+					<div>latitude</div>
+					<div>longitude</div>
+				</div>
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-2">

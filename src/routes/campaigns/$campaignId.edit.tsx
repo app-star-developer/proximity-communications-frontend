@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	Link,
@@ -17,15 +17,23 @@ import type {
 	ApiErrorResponse,
 	Campaign,
 	VenueFilters,
-	VenuePrimaryType,
+    PromoType,
 } from "../../api/types";
 import { useCampaignDetail } from "../../hooks/useCampaigns";
+import {
+	useCountries,
+	useStates,
+	useLgas,
+	useVenueTypes,
+	usePromoTypes,
+} from "../../hooks/useReferenceData";
 import {
 	useCampaignNotificationConfig,
 	useUpsertCampaignNotificationConfig,
 	useUpdateCampaignNotificationConfig,
 	useDeleteCampaignNotificationConfig,
 } from "../../hooks/useCampaigns";
+import { promoCodesApi } from "../../api/modules/promoCodes";
 import { useVenueOptions } from "../../hooks/useVenues";
 import { MediaLibrary } from "../../components/MediaLibrary";
 import { useUIStore } from "../../state/uiStore";
@@ -41,19 +49,7 @@ const STATUS_OPTIONS: Campaign["status"][] = [
 	"scheduled",
 	"active",
 	"paused",
-	"completed",
 	"cancelled",
-];
-
-const VENUE_PRIMARY_TYPES: VenuePrimaryType[] = [
-	"hotel",
-	"restaurant",
-	"bar",
-	"cafe",
-	"mall",
-	"retail",
-	"entertainment",
-	"other",
 ];
 
 const TIMEZONE_OPTIONS = [
@@ -155,15 +151,21 @@ function CampaignEditRoute() {
 	const timezoneId = useId();
 	const venueSearchId = useId();
 	const imageUrlId = useId();
+    const hasPromoCodeId = useId();
+    const promoCodeId = useId();
+    const promoTypeId = useId();
+    const promoValueId = useId();
 
 	// Determine initial venue selection mode based on campaign data
-	const initialVenueMode: "ids" | "filters" =
-		campaign.venueFilters && Object.keys(campaign.venueFilters).length > 0
+	const initialVenueMode: "ids" | "filters" | "all" =
+		campaign.isAllVenues
+			? "all"
+			: campaign.venueFilters && Object.keys(campaign.venueFilters).length > 0
 			? "filters"
 			: "ids"
 
 	const [venueSelectionMode, setVenueSelectionMode] = useState<
-		"ids" | "filters"
+		"ids" | "filters" | "all"
 	>(initialVenueMode);
 	const [venueSearch, setVenueSearch] = useState("");
 	const venueOptionsQuery = useVenueOptions(venueSearch);
@@ -186,14 +188,16 @@ function CampaignEditRoute() {
 				venueIds: [] as string[],
 				venueFilters: {} as VenueFilters,
 				imageUrl: "",
-				initialMode: "ids" as "ids" | "filters",
+				initialMode: "ids" as "ids" | "filters" | "all",
 			}
 		}
 
-		const newMode: "ids" | "filters" =
-			camp.venueFilters && Object.keys(camp.venueFilters).length > 0
+		const newMode: "ids" | "filters" | "all" =
+			camp.isAllVenues
+				? "all"
+				: camp.venueSource === "platform" || (camp.venueFilters && Object.keys(camp.venueFilters).length > 0)
 				? "filters"
-				: "ids"
+				: "ids";
 
 		return {
 			name: camp.name ?? "",
@@ -208,7 +212,15 @@ function CampaignEditRoute() {
 			venueFilters: camp.venueFilters ?? ({} as VenueFilters),
 			imageUrl: camp.imageUrl ?? "",
 			initialMode: newMode,
-		}
+			venueSource: camp.venueSource ?? (camp.venueFilters && Object.keys(camp.venueFilters).length > 0 ? "platform" : "direct"),
+			// Promo code fields (for adding a new one during edit)
+			hasPromoCode: false,
+			promoCode: "",
+			promoDiscountType: "fixed" as "fixed" | "percentage",
+			promoDiscountValue: "",
+			promoTypeId: "",
+			selectedPromoType: undefined as PromoType | undefined,
+		};
 	}, []);
 
 	const initialFormData = getInitialFormState(campaign);
@@ -224,12 +236,62 @@ function CampaignEditRoute() {
 		venueIds: initialFormData.venueIds,
 		venueFilters: initialFormData.venueFilters,
 		imageUrl: initialFormData.imageUrl,
+        venueSource: initialFormData.venueSource,
+        hasPromoCode: initialFormData.hasPromoCode,
+        promoCode: initialFormData.promoCode,
+        promoDiscountType: initialFormData.promoDiscountType,
+        promoDiscountValue: initialFormData.promoDiscountValue,
+        promoTypeId: initialFormData.promoTypeId,
+        selectedPromoType: initialFormData.selectedPromoType,
 	});
 
-	// Only initialize once when campaign data is first loaded
+    const countriesQuery = useCountries();
+    const promoTypesQuery = usePromoTypes();
+    const promoTypes = promoTypesQuery.data ?? [];
+
+	const promoCodesQuery = useQuery({
+		queryKey: ["promo-codes", campaign.id],
+		queryFn: () => promoCodesApi.list(campaign.id),
+		enabled: !!campaign.id,
+	});
+
+	// Initialize form state once when campaign and metadata are loaded
 	useEffect(() => {
-		if (campaign?.id && initializedRef.current !== campaign.id) {
+		if (campaign?.id && countriesQuery.data && initializedRef.current !== campaign.id) {
 			const formData = getInitialFormState(campaign);
+
+			// Lock Country to Nigeria (NG) if not set, or ensure it uses ID for frontend
+			const nigeria = countriesQuery.data.find((c) => c.code === "NG");
+			if (nigeria) {
+				formData.venueFilters.countryCode = nigeria.id;
+			} else if (
+				formData.venueFilters.countryCode &&
+				formData.venueFilters.countryCode.length === 2
+			) {
+				// Fallback mapping for other countries if needed, though locked to NG
+				const country = countriesQuery.data.find(
+					(c) => c.code === formData.venueFilters.countryCode,
+				);
+				if (country) {
+					formData.venueFilters.countryCode = country.id;
+				}
+			}
+
+			// Auto-populate with existing promo code if available
+			const existingPromo = promoCodesQuery.data?.data?.[0];
+			if (existingPromo) {
+				formData.hasPromoCode = true;
+				formData.promoCode = existingPromo.code;
+				formData.promoTypeId = existingPromo.promoTypeId || "";
+				formData.promoDiscountType = existingPromo.discountType as "fixed" | "percentage";
+				formData.promoDiscountValue = existingPromo.discountValue?.toString() || "";
+				if (existingPromo.promoTypeId) {
+					formData.selectedPromoType = promoTypes.find(
+						(t) => t.id === existingPromo.promoTypeId,
+					);
+				}
+			}
+
 			setVenueSelectionMode(formData.initialMode);
 			setFormState({
 				name: formData.name,
@@ -243,10 +305,17 @@ function CampaignEditRoute() {
 				venueIds: formData.venueIds,
 				venueFilters: formData.venueFilters,
 				imageUrl: formData.imageUrl,
-			})
+				venueSource: formData.venueSource,
+				hasPromoCode: formData.hasPromoCode,
+				promoCode: formData.promoCode,
+				promoDiscountType: formData.promoDiscountType,
+				promoDiscountValue: formData.promoDiscountValue,
+				promoTypeId: formData.promoTypeId,
+				selectedPromoType: formData.selectedPromoType,
+			});
 			initializedRef.current = campaign.id;
 		}
-	}, [campaign, getInitialFormState]);
+	}, [campaign, getInitialFormState, countriesQuery.data, promoCodesQuery.data, promoTypes]);
 
 	const mutation = useMutation({
 		mutationFn: (payload: UpdateCampaignPayload) =>
@@ -297,14 +366,21 @@ function CampaignEditRoute() {
 			return {
 				...previous,
 				venueIds: isSelected
-					? previous.venueIds.filter((id) => id !== venueId)
+					? previous.venueIds.filter((id: string) => id !== venueId)
 					: [...previous.venueIds, venueId],
-			}
-		})
-	}
+			};
+		});
+	};
 
 	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
+
+        // Map country ID to code for the payload
+        const selectedCountry = countriesQuery.data?.find(c => c.id === formState.venueFilters.countryCode)
+        const filtersPayload = {
+            ...formState.venueFilters,
+            countryCode: selectedCountry?.code || formState.venueFilters.countryCode
+        }
 
 		const payload: UpdateCampaignPayload = {
 			name: formState.name,
@@ -330,9 +406,18 @@ function CampaignEditRoute() {
 			venueFilters:
 				venueSelectionMode === "filters" &&
 				Object.keys(formState.venueFilters).length > 0
-					? formState.venueFilters
+					? filtersPayload
 					: undefined,
+            venueSource: venueSelectionMode === 'filters' ? 'platform' : 'direct',
+			isAllVenues: venueSelectionMode === "all",
 			imageUrl: formState.imageUrl || undefined,
+            promoCode: formState.hasPromoCode ? {
+                code: formState.promoCode || undefined,
+                promoTypeId: formState.promoTypeId,
+                discountType: formState.selectedPromoType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
+                discountValue: formState.promoDiscountValue ? Number(formState.promoDiscountValue) : 0,
+                targetingConfiguration: {} 
+            } : undefined
 		}
 
 		mutation.mutate(payload);
@@ -560,6 +645,97 @@ function CampaignEditRoute() {
 							))}
 						</select>
 					</div>
+
+                    {/* Promo Code Section (Sync with New Campaign Flow) */}
+                    <div className="md:col-span-2 space-y-4 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+                        <div className="flex items-center justify-between">
+                            <label htmlFor={hasPromoCodeId} className="flex items-center gap-3 cursor-pointer group">
+                                <div className={`flex h-5 w-5 items-center justify-center rounded border transition-colors ${formState.hasPromoCode ? 'border-cyan-500 bg-cyan-500' : 'border-slate-600 bg-slate-800 group-hover:border-slate-500'}`}>
+                                    {formState.hasPromoCode && <span className="text-[10px] text-slate-950">✓</span>}
+                                </div>
+                                <input
+                                    id={hasPromoCodeId}
+                                    type="checkbox"
+                                    checked={formState.hasPromoCode}
+                                    onChange={(e) => setFormState(prev => ({ ...prev, hasPromoCode: e.target.checked }))}
+                                    className="sr-only"
+                                />
+                                <span className="text-sm font-medium text-slate-200">Attach a promo code to this campaign?</span>
+                            </label>
+                        </div>
+
+                        {formState.hasPromoCode && (
+                            <div className="grid gap-4 pt-4 border-t border-slate-800 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label htmlFor={promoCodeId} className="text-xs uppercase tracking-wide text-slate-500">
+                                        Promo Code (Optional)
+                                    </label>
+                                    <input
+                                        id={promoCodeId}
+                                        name="promoCode"
+                                        value={formState.promoCode}
+                                        onChange={handleChange}
+                                        placeholder="SAVE20"
+                                        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                                    />
+                                    <p className="text-[10px] text-slate-500">Leave empty to auto-generate a random code.</p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <label htmlFor={promoTypeId} className="text-xs uppercase tracking-wide text-slate-500">
+                                        Promotion Type
+                                    </label>
+                                    <select
+                                        id={promoTypeId}
+                                        name="promoTypeId"
+                                        value={formState.promoTypeId}
+                                        onChange={(e) => {
+                                            const typeId = e.target.value
+                                            const selected = promoTypes.find(t => t.id === typeId)
+                                            setFormState(prev => ({ 
+                                                ...prev, 
+                                                promoTypeId: typeId,
+                                                selectedPromoType: selected
+                                            }))
+                                        }}
+                                        required={formState.hasPromoCode}
+                                        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                                    >
+                                        <option value="">Select Type...</option>
+                                        {promoTypes.map((type) => (
+                                            <option key={type.id} value={type.id}>
+                                                {type.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {formState.selectedPromoType?.requiresValue && (
+                                    <div className="space-y-2">
+                                        <label htmlFor={promoValueId} className="text-xs uppercase tracking-wide text-slate-500">
+                                            Discount Value ({formState.selectedPromoType.slug?.includes('percentage') ? '%' : 'Fixed'})
+                                        </label>
+                                        <input
+                                            id={promoValueId}
+                                            name="promoDiscountValue"
+                                            type="number"
+                                            min={1}
+                                            value={formState.promoDiscountValue}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                                        />
+                                    </div>
+                                )}
+                                
+                                {formState.selectedPromoType?.description && (
+                                    <div className="md:col-span-2 text-xs text-slate-500 italic">
+                                        {formState.selectedPromoType.description}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 				</div>
 
 				<div className="space-y-4">
@@ -591,7 +767,20 @@ function CampaignEditRoute() {
 									className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
 								/>
 								<span className="text-sm text-slate-200">
-									Use dynamic filters
+									Use Platform venues
+								</span>
+							</label>
+							<label className="flex items-center gap-2 cursor-pointer">
+								<input
+									type="radio"
+									name="venueMode"
+									value="all"
+									checked={venueSelectionMode === "all"}
+									onChange={() => setVenueSelectionMode("all")}
+									className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
+								/>
+								<span className="text-sm text-slate-200">
+									Include all venues
 								</span>
 							</label>
 						</div>
@@ -671,13 +860,17 @@ function CampaignEditRoute() {
 								</div>
 							)}
 						</div>
-					) : (
+					) : venueSelectionMode === "filters" ? (
 						<VenueFiltersForm
 							filters={formState.venueFilters}
 							onFiltersChange={(filters) =>
 								setFormState((prev) => ({ ...prev, venueFilters: filters }))
 							}
 						/>
+					) : (
+						<div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 px-4 py-8 text-center text-sm text-slate-400">
+							All venues associated with your organization will be automatically targeted.
+						</div>
 					)}
 				</div>
 
@@ -934,6 +1127,15 @@ function CampaignNotificationSection({
 	)
 }
 
+const GEOPOLITICAL_ZONES = [
+	{ value: "north_central", label: "North Central" },
+	{ value: "north_east", label: "North East" },
+	{ value: "north_west", label: "North West" },
+	{ value: "south_east", label: "South East" },
+	{ value: "south_south", label: "South South" },
+	{ value: "south_west", label: "South West" },
+]
+
 function VenueFiltersForm({
 	filters,
 	onFiltersChange,
@@ -941,233 +1143,122 @@ function VenueFiltersForm({
 	filters: VenueFilters;
 	onFiltersChange: (filters: VenueFilters) => void;
 }) {
-	const cityId = useId();
-	const regionId = useId();
-	const countryCodeId = useId();
-	const statusId = useId();
-	const radiusLatId = useId();
-	const radiusLonId = useId();
-	const radiusMetersId = useId();
-	const isSharedId = useId();
+	const countriesQuery = useCountries()
+	const statesQuery = useStates(filters.countryCode)
+	const lgasQuery = useLgas(filters.stateId)
+	const venueTypesQuery = useVenueTypes()
 
 	const handleChange = (
 		event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
 	) => {
-		const { name, value, type } = event.target;
-		const checked = (event.target as HTMLInputElement).checked;
+		const { name, value, type } = event.target
+        const checked = (event.target as HTMLInputElement).checked
 
-		if (name === "primaryType") {
-			const checkbox = event.target as HTMLInputElement;
-			const currentTypes = filters.primaryType || [];
-			const newTypes = checkbox.checked
-				? [...currentTypes, value as VenuePrimaryType]
-				: currentTypes.filter((t) => t !== value);
-			onFiltersChange({
-				...filters,
-				primaryType: newTypes.length > 0 ? newTypes : undefined,
-			})
+		// Clear dependent fields when parent changes
+		if (name === "countryCode") {
+			onFiltersChange({ ...filters, countryCode: value, stateId: undefined, lgaId: undefined })
 			return
 		}
-
-		if (name.startsWith("radius.")) {
-			const field = name.split(".")[1] as "latitude" | "longitude" | "meters";
-			const currentRadius = filters.radius || {
-				latitude: undefined,
-				longitude: undefined,
-				meters: undefined,
-			}
-			const newValue = value ? Number(value) : undefined;
-			const newRadius = {
-				...currentRadius,
-				[field]: newValue,
-			}
-			// Only include radius if all required fields are present
-			if (
-				newRadius.latitude !== undefined &&
-				newRadius.longitude !== undefined &&
-				newRadius.meters !== undefined
-			) {
-				onFiltersChange({
-					...filters,
-					radius: newRadius as VenueFilters["radius"],
-				})
-			} else {
-				onFiltersChange({
-					...filters,
-					radius: undefined,
-				})
-			}
-			return
-		}
-
-		if (type === "checkbox") {
-			onFiltersChange({
-				...filters,
-				[name]: checked || undefined,
-			})
+		if (name === "stateId") {
+			onFiltersChange({ ...filters, stateId: value, lgaId: undefined })
 			return
 		}
 
 		onFiltersChange({
 			...filters,
-			[name]: value || undefined,
+			[name]: type === "checkbox" ? checked : value || undefined,
 		})
 	}
 
 	return (
 		<div className="space-y-4">
-			<p className="text-xs text-slate-500">
-				Configure filters to dynamically select venues. All filters are optional
-				and can be combined.
-			</p>
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="space-y-2">
-					<div className="text-xs uppercase tracking-wide text-slate-500">
-						Primary type
-					</div>
-					<div className="space-y-2">
-						{VENUE_PRIMARY_TYPES.map((type) => (
-							<label
-								key={type}
-								className="flex items-center gap-2 cursor-pointer"
-							>
-								<input
-									type="checkbox"
-									name="primaryType"
-									value={type}
-									checked={filters.primaryType?.includes(type) ?? false}
-									onChange={handleChange}
-									className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
-								/>
-								<span className="text-sm text-slate-200 capitalize">
-									{type}
-								</span>
-							</label>
-						))}
-					</div>
-				</div>
-				<div className="space-y-2">
-					<label
-						htmlFor={cityId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						City
-					</label>
-					<input
-						id={cityId}
-						name="city"
-						value={filters.city || ""}
-						onChange={handleChange}
-						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-					/>
-				</div>
-				<div className="space-y-2">
-					<label
-						htmlFor={regionId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						Region/State
-					</label>
-					<input
-						id={regionId}
-						name="region"
-						value={filters.region || ""}
-						onChange={handleChange}
-						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-					/>
-				</div>
-				<div className="space-y-2">
-					<label
-						htmlFor={countryCodeId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						Country code (ISO-2)
-					</label>
-					<input
-						id={countryCodeId}
-						name="countryCode"
-						value={filters.countryCode || ""}
-						onChange={handleChange}
-						maxLength={2}
-						placeholder="US"
-						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-					/>
-				</div>
-				<div className="space-y-2">
-					<label
-						htmlFor={statusId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						Status
-					</label>
+					<label className="text-xs uppercase tracking-wide text-slate-500">Country</label>
 					<select
-						id={statusId}
-						name="status"
-						value={filters.status || ""}
+						name="countryCode"
+						value={filters.countryCode ?? ""}
 						onChange={handleChange}
-						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+						disabled
+						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-70"
 					>
-						<option value="">Any</option>
-						<option value="active">Active</option>
-						<option value="draft">Draft</option>
-						<option value="inactive">Inactive</option>
+						<option value="">Select Country...</option>
+						{countriesQuery.data?.map((c) => (
+							<option key={c.id} value={c.id}>
+								{c.name}
+							</option>
+						))}
 					</select>
 				</div>
+
 				<div className="space-y-2">
-					<label className="flex items-center gap-2 cursor-pointer">
-						<input
-							type="checkbox"
-							id={isSharedId}
-							name="isShared"
-							checked={filters.isShared ?? false}
-							onChange={handleChange}
-							className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
-						/>
-						<span className="text-xs uppercase tracking-wide text-slate-500">
-							Include shared venues
-						</span>
-					</label>
+					<label className="text-xs uppercase tracking-wide text-slate-500">State</label>
+					<select
+						name="stateId"
+						value={filters.stateId ?? ""}
+						onChange={handleChange}
+						disabled={!filters.countryCode}
+						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50"
+					>
+						<option value="">Select State...</option>
+						{statesQuery.data?.map((s) => (
+							<option key={s.id} value={s.id}>
+								{s.name}
+							</option>
+						))}
+					</select>
 				</div>
-				<div className="space-y-2 md:col-span-2">
-					<div className="text-xs uppercase tracking-wide text-slate-500">
-						Radius filter (optional)
-					</div>
-					<div className="grid gap-3 md:grid-cols-3">
-						<input
-							id={radiusLatId}
-							name="radius.latitude"
-							type="number"
-							step="any"
-							min={-90}
-							max={90}
-							value={filters.radius?.latitude || ""}
-							onChange={handleChange}
-							placeholder="Latitude"
-							className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-						/>
-						<input
-							id={radiusLonId}
-							name="radius.longitude"
-							type="number"
-							step="any"
-							min={-180}
-							max={180}
-							value={filters.radius?.longitude || ""}
-							onChange={handleChange}
-							placeholder="Longitude"
-							className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-						/>
-						<input
-							id={radiusMetersId}
-							name="radius.meters"
-							type="number"
-							min={0}
-							value={filters.radius?.meters || ""}
-							onChange={handleChange}
-							placeholder="Radius (meters)"
-							className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-						/>
-					</div>
+
+				<div className="space-y-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">LGA</label>
+					<select
+						name="lgaId"
+						value={filters.lgaId ?? ""}
+						onChange={handleChange}
+						disabled={!filters.stateId}
+						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50"
+					>
+						<option value="">Select LGA...</option>
+						{lgasQuery.data?.map((l) => (
+							<option key={l.id} value={l.id}>
+								{l.name}
+							</option>
+						))}
+					</select>
+				</div>
+
+				<div className="space-y-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">Venue Type</label>
+					<select
+						name="venueTypeId"
+						value={filters.venueTypeId ?? ""}
+						onChange={handleChange}
+						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+					>
+						<option value="">Select Type...</option>
+						{venueTypesQuery.data?.map((t) => (
+							<option key={t.id} value={t.id}>
+								{t.name}
+							</option>
+						))}
+					</select>
+				</div>
+				
+				<div className="space-y-2">
+					<label className="text-xs uppercase tracking-wide text-slate-500">Geopolitical Zone</label>
+					<select
+						name="geopoliticalZone"
+						value={filters.geopoliticalZone ?? ""}
+						onChange={handleChange}
+						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+					>
+						<option value="">Select Zone...</option>
+						{GEOPOLITICAL_ZONES.map((z) => (
+							<option key={z.value} value={z.value}>
+								{z.label}
+							</option>
+						))}
+					</select>
 				</div>
 			</div>
 		</div>

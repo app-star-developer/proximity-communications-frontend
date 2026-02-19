@@ -9,9 +9,11 @@ import type {
 	UpdatePromoCodeRequest,
 	PromoCode,
 	PromoCodeStatus,
+    PromoType,
 } from '../api/types'
 import { useUIStore } from '../state/uiStore'
 import { MediaLibrary } from './MediaLibrary'
+import { usePromoTypes } from '../hooks/useReferenceData'
 
 interface PromoCodesSectionProps {
 	campaignId: string
@@ -26,6 +28,9 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 		queryKey: ['promo-codes', campaignId],
 		queryFn: () => promoCodesApi.list(campaignId),
 	})
+
+    const promoTypesQuery = usePromoTypes()
+    const promoTypes = promoTypesQuery.data || []
 
 	const createMutation = useMutation({
 		mutationFn: (payload: CreatePromoCodeRequest) =>
@@ -186,6 +191,7 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 			{showCreateForm && (
 				<CreatePromoCodeForm
 					campaignId={campaignId}
+					promoTypes={promoTypes}
 					onSubmit={(payload) => createMutation.mutate(payload)}
 					onCancel={() => setShowCreateForm(false)}
 					isPending={createMutation.isPending}
@@ -204,6 +210,7 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 						<PromoCodeCard
 							key={promoCode.id}
 							promoCode={promoCode}
+                            promoTypes={promoTypes}
 							onUpdate={(payload) => handleUpdate(promoCode, payload)}
 							onDelete={() => handleDelete(promoCode)}
 							onRegenerate={() => handleRegenerate(promoCode)}
@@ -219,6 +226,7 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 
 function PromoCodeCard({
 	promoCode,
+    promoTypes,
 	onUpdate,
 	onDelete,
 	onRegenerate,
@@ -226,6 +234,7 @@ function PromoCodeCard({
 	isUpdating,
 }: {
 	promoCode: PromoCode
+    promoTypes: PromoType[]
 	onUpdate: (payload: UpdatePromoCodeRequest) => void
 	onDelete: () => void
 	onRegenerate: () => void
@@ -238,12 +247,15 @@ function PromoCodeCard({
 		(!promoCode.validFrom ||
 			new Date(promoCode.validFrom) <= new Date()) &&
 		(!promoCode.validTo || new Date(promoCode.validTo) >= new Date()) &&
-		promoCode.currentUses < promoCode.maxUses
+		(promoCode.maxUses === null || promoCode.currentUses < promoCode.maxUses)
+
+    const promoType = promoTypes.find(t => t.id === promoCode.promoTypeId)
 
 	if (isEditing) {
 		return (
 			<EditPromoCodeForm
 				promoCode={promoCode}
+                promoTypes={promoTypes}
 				onSubmit={(payload) => {
 					onUpdate(payload)
 					setIsEditing(false)
@@ -278,8 +290,18 @@ function PromoCodeCard({
 						)}
 					</div>
 					<div className="mt-2 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
+                        {promoType && (
+                            <div className="col-span-2">
+                                <span className="text-slate-300 font-medium">{promoType.name}</span>
+                                {promoCode.discountValue && (
+                                    <span className="ml-2 text-slate-500">
+                                        • {promoCode.discountValue} {promoCode.discountType === 'percentage' ? '%' : ''} off
+                                    </span>
+                                )}
+                            </div>
+                        )}
 						<div>
-							Uses: {promoCode.currentUses} / {promoCode.maxUses}
+							Uses: {promoCode.currentUses} / {promoCode.maxUses ?? '∞'}
 						</div>
 						{promoCode.maxUsesPerUser && (
 							<div>Max per user: {promoCode.maxUsesPerUser}</div>
@@ -331,12 +353,14 @@ function PromoCodeCard({
 }
 
 function CreatePromoCodeForm({
-	
+	campaignId,
+    promoTypes,
 	onSubmit,
 	onCancel,
 	isPending,
 }: {
 	campaignId: string
+    promoTypes: PromoType[]
 	onSubmit: (payload: CreatePromoCodeRequest) => void
 	onCancel: () => void
 	isPending: boolean
@@ -346,16 +370,22 @@ function CreatePromoCodeForm({
 	const maxUsesPerUserId = useId()
 	const validFromId = useId()
 	const validToId = useId()
+    const promoTypeId = useId()
+    const discountValueId = useId()
 
 	const [formState, setFormState] = useState({
 		code: '',
 		status: 'active' as PromoCodeStatus,
-		maxUses: 100,
+		maxUses: 100 as number | null,
 		maxUsesPerUser: 1,
 		validFrom: '',
 		validTo: '',
 		imageUrl: '',
+        promoTypeId: '',
+        discountValue: ''
 	})
+
+    const selectedUniqueType = promoTypes.find(t => t.id === formState.promoTypeId)
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -367,6 +397,9 @@ function CreatePromoCodeForm({
 			validFrom: formState.validFrom || undefined,
 			validTo: formState.validTo || undefined,
 			imageUrl: formState.imageUrl || undefined,
+            promoTypeId: formState.promoTypeId || undefined,
+            discountType: selectedUniqueType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
+            discountValue: formState.discountValue ? Number(formState.discountValue) : undefined,
 		})
 	}
 
@@ -376,6 +409,39 @@ function CreatePromoCodeForm({
 			className="rounded-lg border border-slate-800 bg-slate-900/50 p-4 space-y-4"
 		>
 			<div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                    <label htmlFor={promoTypeId} className="text-xs uppercase tracking-wide text-slate-500">
+                        Promotion Type
+                    </label>
+                    <select
+                        id={promoTypeId}
+                        value={formState.promoTypeId}
+                        onChange={(e) => setFormState(prev => ({ ...prev, promoTypeId: e.target.value }))}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                    >
+                        <option value="">Select a type...</option>
+                        {promoTypes.map(type => (
+                            <option key={type.id} value={type.id}>{type.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {selectedUniqueType?.requiresValue && (
+                     <div className="space-y-2">
+                        <label htmlFor={discountValueId} className="text-xs uppercase tracking-wide text-slate-500">
+                            {selectedUniqueType.valueLabel || 'Discount Value'}
+                        </label>
+                        <input
+                            id={discountValueId}
+                            type="number"
+                            min="0"
+                            value={formState.discountValue}
+                            onChange={(e) => setFormState(prev => ({ ...prev, discountValue: e.target.value }))}
+                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                        />
+                    </div>
+                )}
+
 				<div className="space-y-2">
 					<label
 						htmlFor={codeId}
@@ -421,20 +487,20 @@ function CreatePromoCodeForm({
 						htmlFor={maxUsesId}
 						className="text-xs uppercase tracking-wide text-slate-500"
 					>
-						Max Uses *
+						Max Uses
 					</label>
 					<input
 						id={maxUsesId}
 						type="number"
 						min="1"
-						value={formState.maxUses}
+						value={formState.maxUses ?? ''}
 						onChange={(e) =>
 							setFormState((prev) => ({
 								...prev,
-								maxUses: parseInt(e.target.value, 10) || 1,
+								maxUses: e.target.value === '' ? null : parseInt(e.target.value, 10),
 							}))
 						}
-						required
+						placeholder="Unlimited"
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 					/>
 				</div>
@@ -516,11 +582,13 @@ function CreatePromoCodeForm({
 
 function EditPromoCodeForm({
 	promoCode,
+    promoTypes,
 	onSubmit,
 	onCancel,
 	isPending,
 }: {
 	promoCode: PromoCode
+    promoTypes: PromoType[]
 	onSubmit: (payload: UpdatePromoCodeRequest) => void
 	onCancel: () => void
 	isPending: boolean
@@ -529,6 +597,9 @@ function EditPromoCodeForm({
 	const statusId = useId()
 	const validFromId = useId()
 	const validToId = useId()
+    const promoTypeId = useId()
+    const discountValueId = useId()
+    const imageUrlId = useId()
 
 	const [formState, setFormState] = useState({
 		maxUses: promoCode.maxUses,
@@ -540,9 +611,12 @@ function EditPromoCodeForm({
 			? format(parseISO(promoCode.validTo), "yyyy-MM-dd'T'HH:mm")
 			: '',
 		imageUrl: promoCode.imageUrl || '',
+        promoTypeId: promoCode.promoTypeId || '',
+        discountValue: promoCode.discountValue || ''
 	})
-	const [showMediaLibrary, setShowMediaLibrary] = useState(false)
-	const imageUrlId = useId()
+
+    const selectedUniqueType = promoTypes.find(t => t.id === formState.promoTypeId)
+    const [showMediaLibrary, setShowMediaLibrary] = useState(false)
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -552,6 +626,9 @@ function EditPromoCodeForm({
 			validFrom: formState.validFrom || null,
 			validTo: formState.validTo || null,
 			imageUrl: formState.imageUrl || null,
+            promoTypeId: formState.promoTypeId || null,
+            discountType: selectedUniqueType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
+            discountValue: formState.discountValue ? Number(formState.discountValue) : null,
 		})
 	}
 
@@ -565,30 +642,62 @@ function EditPromoCodeForm({
 					{promoCode.code}
 				</code>
 				<span className="text-xs text-slate-500">
-					Uses: {promoCode.currentUses} / {promoCode.maxUses}
+					Uses: {promoCode.currentUses} / {promoCode.maxUses ?? '∞'}
 				</span>
 			</div>
 
 			<div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                    <label htmlFor={promoTypeId} className="text-xs uppercase tracking-wide text-slate-500">
+                        Promotion Type
+                    </label>
+                    <select
+                        id={promoTypeId}
+                        value={formState.promoTypeId}
+                        onChange={(e) => setFormState(prev => ({ ...prev, promoTypeId: e.target.value }))}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                    >
+                        <option value="">Select a type...</option>
+                        {promoTypes.map(type => (
+                            <option key={type.id} value={type.id}>{type.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {selectedUniqueType?.requiresValue && (
+                     <div className="space-y-2">
+                        <label htmlFor={discountValueId} className="text-xs uppercase tracking-wide text-slate-500">
+                            {selectedUniqueType.valueLabel || 'Discount Value'}
+                        </label>
+                        <input
+                            id={discountValueId}
+                            type="number"
+                            min="0"
+                            value={formState.discountValue}
+                            onChange={(e) => setFormState(prev => ({ ...prev, discountValue: Number(e.target.value) }))}
+                            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                        />
+                    </div>
+                )}
 				<div className="space-y-2">
 					<label
 						htmlFor={maxUsesId}
 						className="text-xs uppercase tracking-wide text-slate-500"
 					>
-						Max Uses *
+						Max Uses
 					</label>
 					<input
 						id={maxUsesId}
 						type="number"
 						min="1"
-						value={formState.maxUses}
+						value={formState.maxUses ?? ''}
 						onChange={(e) =>
 							setFormState((prev) => ({
 								...prev,
-								maxUses: parseInt(e.target.value, 10) || 1,
+								maxUses: e.target.value === '' ? null : parseInt(e.target.value, 10),
 							}))
 						}
-						required
+						placeholder="Unlimited"
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 					/>
 				</div>
@@ -649,71 +758,56 @@ function EditPromoCodeForm({
 						className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
 					/>
 				</div>
-				<div className="space-y-2 sm:col-span-2">
-					<label
-						htmlFor={imageUrlId}
-						className="text-xs uppercase tracking-wide text-slate-500"
-					>
-						Promo Image URL
-					</label>
-					<div className="flex gap-2">
-						<input
-							id={imageUrlId}
-							type="text"
-							value={formState.imageUrl}
-							onChange={(e) =>
-								setFormState((prev) => ({ ...prev, imageUrl: e.target.value }))
-							}
-							placeholder="https://storage.googleapis.com/..."
-							className="flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-						/>
-						<button
-							type="button"
-							onClick={() => setShowMediaLibrary(true)}
-							className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700"
-						>
-							Media Library
-						</button>
-					</div>
-					{formState.imageUrl && (
-						<div className="mt-2 aspect-video w-32 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
-							<img
-								src={formState.imageUrl}
-								alt="Preview"
-								className="h-full w-full object-cover"
-							/>
-						</div>
-					)}
-				</div>
 			</div>
 
-			{showMediaLibrary && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-					<div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
-						<div className="flex items-center justify-between border-b border-slate-800 p-4">
-							<h3 className="text-lg font-semibold text-white">
-								Select Promo Image
-							</h3>
-							<button
-								type="button"
-								onClick={() => setShowMediaLibrary(false)}
-								className="text-slate-400 hover:text-white"
-							>
-								✕
-							</button>
-						</div>
-						<div className="h-full overflow-y-auto p-4 pb-20">
-							<MediaLibrary
-								folder="promo-codes"
-								onSelect={(url) => {
-									setFormState((prev) => ({ ...prev, imageUrl: url }));
-									setShowMediaLibrary(false);
-								}}
-							/>
-						</div>
-					</div>
-				</div>
-			)}
+            {/* Media Library Logic */}
+             <div className="space-y-2">
+                 <label htmlFor={imageUrlId} className="text-xs uppercase tracking-wide text-slate-500">
+                     Promo Image
+                 </label>
+                 <div className="flex items-center gap-3">
+                     {formState.imageUrl ? (
+                         <img
+                             src={formState.imageUrl}
+                             alt="Promo"
+                             className="h-16 w-16 rounded-lg border border-slate-700 object-cover"
+                         />
+                     ) : (
+                         <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-slate-700 bg-slate-900/50 text-xs text-slate-500">
+                             No image
+                         </div>
+                     )}
+                     <div className="flex flex-col gap-2">
+                         <button
+                             type="button"
+                             onClick={() => setShowMediaLibrary(true)}
+                             className="text-xs text-cyan-400 hover:text-cyan-300"
+                         >
+                             {formState.imageUrl ? 'Change image' : 'Select image'}
+                         </button>
+                         {formState.imageUrl && (
+                             <button
+                                 type="button"
+                                 onClick={() => setFormState(prev => ({ ...prev, imageUrl: '' }))}
+                                 className="text-xs text-red-400 hover:text-red-300"
+                             >
+                                 Remove
+                             </button>
+                         )}
+                     </div>
+                 </div>
+             </div>
+
+            {showMediaLibrary && (
+                 <MediaLibrary
+                     onSelect={(url) => {
+                         setFormState(prev => ({ ...prev, imageUrl: url }))
+                         setShowMediaLibrary(false)
+                     }}
+                     onClose={() => setShowMediaLibrary(false)}
+                 />
+             )}
+
 			<div className="flex items-center justify-end gap-3">
 				<button
 					type="button"
@@ -727,10 +821,9 @@ function EditPromoCodeForm({
 					disabled={isPending}
 					className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 disabled:cursor-not-allowed disabled:bg-cyan-500/50"
 				>
-					{isPending ? 'Updating…' : 'Update Promo Code'}
+					{isPending ? 'Saving…' : 'Save Changes'}
 				</button>
 			</div>
 		</form>
 	)
 }
-

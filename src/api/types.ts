@@ -87,6 +87,7 @@ export interface Campaign {
 		| "paused"
 		| "completed"
 		| "cancelled";
+	venueSource: "direct" | "platform";
 	startAt?: string | null;
 	endAt?: string | null;
 	radiusMeters?: number | null;
@@ -94,7 +95,17 @@ export interface Campaign {
 	budgetCents?: number | null;
 	imageUrl?: string | null;
 	venueIds: string[];
+	venues: Array<{
+		id: string;
+		name: string;
+		slug: string;
+		address?: string;
+		city?: string | null;
+		primaryType?: string | null;
+	}>;
+	totalVenuesCount: number;
 	venueFilters?: VenueFilters | null;
+	isAllVenues?: boolean;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -145,6 +156,7 @@ export interface CreateVenueRequest {
 	longitude?: number;
 	externalId?: string;
 	status?: "draft" | "active" | "inactive";
+	primaryType?: VenuePrimaryType;
 	metadata?: Record<string, unknown>;
 	ownerEmail?: string; // Optional: triggers owner account creation
 }
@@ -154,7 +166,7 @@ export interface Venue extends CreateVenueRequest {
 	tenantId: string;
 	createdAt: string;
 	updatedAt: string;
-	primaryType: string;
+	primaryType: VenuePrimaryType;
 	ownerCreationInitiated?: boolean; // Indicates owner account creation started
 }
 
@@ -425,12 +437,23 @@ export interface VenueFilters {
 	};
 	status?: "active" | "draft" | "inactive";
 	isShared?: boolean;
+	stateId?: string;
+	lgaId?: string;
+	geopoliticalZone?:
+		| "north_central"
+		| "north_east"
+		| "north_west"
+		| "south_east"
+		| "south_south"
+		| "south_west";
+	venueTypeId?: string;
 }
 
 // Campaign Types Enhancement
 export interface CreateCampaignRequest {
 	name: string;
 	description?: string;
+	venueSource?: "direct" | "platform";
 	radiusMeters?: number;
 	timezone?: string;
 	startAt?: string;
@@ -439,7 +462,17 @@ export interface CreateCampaignRequest {
 	imageUrl?: string;
 	venueIds?: string[];
 	venueFilters?: VenueFilters;
+	isAllVenues?: boolean;
 	status?: Campaign["status"];
+	promoCode?: CreateCampaignPromoCodeRequest;
+}
+
+export interface CreateCampaignPromoCodeRequest {
+	code?: string;
+	promoTypeId?: string;
+	discountType: "percentage" | "fixed";
+	discountValue: number;
+	targetingConfiguration?: Record<string, unknown>;
 }
 
 export interface UpdateCampaignRequest extends Partial<CreateCampaignRequest> {}
@@ -630,13 +663,16 @@ export interface PromoCode {
 	campaignId: string;
 	code: string;
 	status: PromoCodeStatus;
-	maxUses: number;
+	maxUses: number | null;
 	currentUses: number;
 	maxUsesPerUser?: number;
 	validFrom?: string | null;
 	validTo?: string | null;
 	imageUrl?: string | null;
 	generationSettings?: PromoCodeGenerationSettings | null;
+	promoTypeId?: string | null;
+	discountType?: "percentage" | "fixed" | null;
+	discountValue?: number | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -648,20 +684,26 @@ export interface PromoCodeListResponse {
 export interface CreatePromoCodeRequest {
 	code?: string; // Optional: auto-generate if not provided
 	status?: PromoCodeStatus;
-	maxUses: number;
+	maxUses: number | null;
 	maxUsesPerUser?: number;
 	validFrom?: string;
 	validTo?: string;
 	imageUrl?: string;
 	generationSettings?: PromoCodeGenerationSettings;
+	promoTypeId?: string;
+	discountType?: "percentage" | "fixed";
+	discountValue?: number;
 }
 
 export interface UpdatePromoCodeRequest {
-	maxUses?: number;
+	maxUses?: number | null;
 	status?: PromoCodeStatus;
 	validFrom?: string | null;
 	validTo?: string | null;
 	imageUrl?: string | null;
+	promoTypeId?: string | null;
+	discountType?: "percentage" | "fixed" | null;
+	discountValue?: number | null;
 }
 
 export interface RegeneratePromoCodeRequest {
@@ -752,3 +794,41 @@ export interface MediaUploadListResponse {
 }
 
 export interface MediaUploadResponse extends MediaUpload {}
+
+// Reference Data Types
+export interface Country {
+	id: string;
+	name: string;
+	code: string;
+}
+
+export interface State {
+	id: string;
+	name: string;
+	code: string;
+	countryId: string;
+}
+
+export interface Lga {
+	id: string;
+	name: string;
+	stateId: string;
+}
+
+export interface VenueType {
+	id: string;
+	name: string;
+	slug: string;
+}
+
+export interface PromoType {
+	id: string;
+	slug: string;
+	name: string;
+	description: string | null;
+	requiresValue: boolean;
+	valueLabel: string | null;
+	isActive: boolean;
+	createdAt: string;
+	updatedAt: string;
+}

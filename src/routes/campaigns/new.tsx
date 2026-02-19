@@ -11,16 +11,13 @@ import type { QueryClient } from '@tanstack/react-query'
 import { requireAuth } from '../../utils/requireAuth'
 import { campaignsApi, type CreateCampaignPayload } from '../../api/modules/campaigns'
 import { queryKeys } from '../../api/queryKeys'
-import type { ApiErrorResponse, Campaign, VenueFilters, VenuePrimaryType } from '../../api/types'
+import type { ApiErrorResponse, Campaign, VenueFilters, PromoType } from '../../api/types'
 import { useUIStore } from '../../state/uiStore'
 import { useVenueOptions } from '../../hooks/useVenues'
 import { MediaLibrary } from '../../components/MediaLibrary'
+import { useCountries, useStates, useLgas, useVenueTypes, usePromoTypes } from '../../hooks/useReferenceData'
 
-const STATUS_OPTIONS: Campaign['status'][] = [
-  'draft',
-  'scheduled',
-  'active',
-]
+
 
 const TIMEZONE_OPTIONS = [
   { value: '', label: 'Select timezone...' },
@@ -64,7 +61,7 @@ const TIMEZONE_OPTIONS = [
   { value: 'Africa/Cairo', label: 'Africa/Cairo (EET/EEST)' },
 ]
 
-const STEPS = ['Basics', 'Schedule', 'Targeting', 'Venues', 'Review'] as const
+const STEPS = ['Basics', 'Schedule', 'Promo Code', 'Targeting', 'Venues', 'Review'] as const
 
 export const Route = createFileRoute('/campaigns/new')({
   loader: async ({ context, location }) => {
@@ -94,11 +91,12 @@ function NewCampaignRoute() {
   const imageUrlId = useId()
 
   const [step, setStep] = useState(0)
-  const [venueSelectionMode, setVenueSelectionMode] = useState<'ids' | 'filters'>('ids')
   const [formState, setFormState] = useState({
     name: '',
     description: '',
+    // status is inferred: 'active' if immediate, 'scheduled' if future, default to draft until launched
     status: 'draft' as Campaign['status'],
+    venueSource: 'direct' as 'direct' | 'platform',
     startAt: '',
     endAt: '',
     timezone: '',
@@ -107,12 +105,25 @@ function NewCampaignRoute() {
     venueIds: [] as string[],
     venueFilters: {} as VenueFilters,
     imageUrl: '',
+    // Promo Code State
+    hasPromoCode: false,
+    promoCode: '',
+    promoDiscountType: 'fixed' as 'fixed' | 'percentage',
+    promoDiscountValue: '',
+    promoTypeId: '',
+    selectedPromoType: undefined as PromoType | undefined,
   })
+  
+  const [scheduleMode, setScheduleMode] = useState<'immediate' | 'scheduled'>('immediate')
   const [showMediaLibrary, setShowMediaLibrary] = useState(false)
-
   const [venueSearch, setVenueSearch] = useState('')
-  const venueOptionsQuery = useVenueOptions(venueSearch)
+  
+  const venueOptionsQuery = useVenueOptions(venueSearch || '')
   const venueOptions = venueOptionsQuery.data?.data ?? []
+
+  const countriesQuery = useCountries()
+  const promoTypesQuery = usePromoTypes()
+  const promoTypes = promoTypesQuery.data ?? []
 
   const slug = useMemo(() => slugify(formState.name), [formState.name])
 
@@ -179,18 +190,35 @@ function NewCampaignRoute() {
       return
     }
 
+
+      // Map country ID to code for the payload
+      const selectedCountry = countriesQuery.data?.find(c => c.id === formState.venueFilters.countryCode)
+      const filtersPayload = {
+        ...formState.venueFilters,
+        countryCode: selectedCountry?.code || formState.venueFilters.countryCode
+      }
+
     const payload: CreateCampaignPayload = {
       name: formState.name,
       description: formState.description || undefined,
-      status: formState.status,
+      status: scheduleMode === 'immediate' ? 'active' : 'scheduled',
       timezone: formState.timezone || undefined,
-      startAt: formState.startAt ? new Date(formState.startAt).toISOString() : undefined,
+      startAt: scheduleMode === 'scheduled' && formState.startAt ? new Date(formState.startAt).toISOString() : (scheduleMode === 'immediate' ? undefined : undefined),
       endAt: formState.endAt ? new Date(formState.endAt).toISOString() : undefined,
       radiusMeters: formState.radiusMeters ? Number(formState.radiusMeters) : undefined,
       budgetCents: formState.budgetCents ? Number(formState.budgetCents) : undefined,
-      venueIds: venueSelectionMode === 'ids' && formState.venueIds.length > 0 ? formState.venueIds : undefined,
-      venueFilters: venueSelectionMode === 'filters' && Object.keys(formState.venueFilters).length > 0 ? formState.venueFilters : undefined,
+      venueIds: formState.venueSource === 'direct' ? formState.venueIds : undefined,
+      venueFilters: formState.venueSource === 'platform' ? filtersPayload : undefined,
+      venueSource: formState.venueSource,
+      isAllVenues: false, // Deprecated/Unused with new flow, usually
       imageUrl: formState.imageUrl || undefined,
+      promoCode: formState.hasPromoCode ? {
+        code: formState.promoCode || undefined,
+        promoTypeId: formState.promoTypeId,
+        discountType: formState.selectedPromoType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
+        discountValue: formState.promoDiscountValue ? Number(formState.promoDiscountValue) : 0,
+        targetingConfiguration: {} // Simplification for now, as per plan
+      } : undefined
     }
 
     mutation.mutate(payload)
@@ -239,21 +267,11 @@ function NewCampaignRoute() {
             </div>
             <div className="space-y-2">
               <label htmlFor={statusId} className="text-xs uppercase tracking-wide text-slate-500">
-                Initial status
+                Campaign Type
               </label>
-              <select
-                id={statusId}
-                name="status"
-                value={formState.status}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-              >
-                {STATUS_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <div className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300">
+                Proximity Promotion
+              </div>
             </div>
             <div className="space-y-2 md:col-span-2">
               <label
@@ -329,34 +347,68 @@ function NewCampaignRoute() {
         )}
 
         {step === 1 ? (
-          <section className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor={startId} className="text-xs uppercase tracking-wide text-slate-500">
-                Start date
+          <section className="space-y-6">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+              <label className="text-xs uppercase tracking-wide text-slate-500 mb-3 block">
+                Launch Timing
               </label>
-              <input
-                id={startId}
-                name="startAt"
-                type="datetime-local"
-                value={formState.startAt}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-              />
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scheduleMode"
+                    value="immediate"
+                    checked={scheduleMode === 'immediate'}
+                    onChange={() => setScheduleMode('immediate')}
+                    className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
+                  />
+                  <span className="text-sm text-slate-200">Launch Immediately</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="scheduleMode"
+                    value="scheduled"
+                    checked={scheduleMode === 'scheduled'}
+                    onChange={() => setScheduleMode('scheduled')}
+                    className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
+                  />
+                  <span className="text-sm text-slate-200">Schedule for Later</span>
+                </label>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label htmlFor={endId} className="text-xs uppercase tracking-wide text-slate-500">
-                End date
-              </label>
-              <input
-                id={endId}
-                name="endAt"
-                type="datetime-local"
-                value={formState.endAt}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
+
+            {scheduleMode === 'scheduled' && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor={startId} className="text-xs uppercase tracking-wide text-slate-500">
+                    Start date
+                  </label>
+                  <input
+                    id={startId}
+                    name="startAt"
+                    type="datetime-local"
+                    value={formState.startAt}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor={endId} className="text-xs uppercase tracking-wide text-slate-500">
+                    End date
+                  </label>
+                  <input
+                    id={endId}
+                    name="endAt"
+                    type="datetime-local"
+                    value={formState.endAt}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                  />
+                </div>
+              </div>
+            )}
+             <div className="space-y-2">
               <label htmlFor={timezoneId} className="text-xs uppercase tracking-wide text-slate-500">
                 Time zone
               </label>
@@ -378,6 +430,89 @@ function NewCampaignRoute() {
         ) : null}
 
         {step === 2 ? (
+          <section className="space-y-6">
+             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <h3 className="text-sm font-semibold text-white">Attach Promo Code</h3>
+                   <p className="text-xs text-slate-400">Generate a unique code for this campaign</p>
+                 </div>
+                 <label className="relative inline-flex items-center cursor-pointer">
+                   <input 
+                      type="checkbox" 
+                      checked={formState.hasPromoCode} 
+                      onChange={(e) => setFormState(prev => ({ ...prev, hasPromoCode: e.target.checked }))}
+                      className="sr-only peer" 
+                    />
+                   <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                 </label>
+               </div>
+             </div>
+
+             {formState.hasPromoCode && (
+               <div className="grid gap-4 md:grid-cols-2">
+                 <div className="space-y-2">
+                   <label className="text-xs uppercase tracking-wide text-slate-500">Code (Optional)</label>
+                   <input
+                     name="promoCode"
+                     value={formState.promoCode}
+                     onChange={handleChange}
+                     placeholder="e.g. SUMMER2024 (Leave empty to auto-generate)"
+                     className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                   />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs uppercase tracking-wide text-slate-500">Promotion Type</label>
+                   <select
+                     name="promoTypeId"
+                     value={formState.promoTypeId}
+                     onChange={(e) => {
+                       const selectedType = promoTypes.find(t => t.id === e.target.value)
+                       setFormState(prev => ({ 
+                         ...prev, 
+                         promoTypeId: e.target.value,
+                         selectedPromoType: selectedType,
+                         // Reset discount value if not needed, or keep for later? Better reset to avoid confusion
+                         promoDiscountValue: selectedType?.requiresValue ? prev.promoDiscountValue : ''
+                       }))
+                     }}
+                     className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                   >
+                     <option value="">Select a promotion type...</option>
+                     {promoTypes.map(type => (
+                       <option key={type.id} value={type.id}>{type.name}</option>
+                     ))}
+                   </select>
+                 </div>
+                 
+                 {formState.selectedPromoType?.requiresValue && (
+                   <div className="space-y-2">
+                      <label className="text-xs uppercase tracking-wide text-slate-500">
+                        {formState.selectedPromoType.valueLabel || 'Discount Value'}
+                      </label>
+                      <input
+                        name="promoDiscountValue"
+                        type="number"
+                        min="0"
+                        value={formState.promoDiscountValue}
+                        onChange={handleChange}
+                        placeholder={formState.selectedPromoType.slug === 'percentage_discount' ? '20' : '500'}
+                        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                      />
+                   </div>
+                 )}
+                 
+                 {formState.selectedPromoType?.description && (
+                   <div className="md:col-span-2 text-xs text-slate-500 italic">
+                     {formState.selectedPromoType.description}
+                   </div>
+                 )}
+               </div>
+             )}
+          </section>
+        ) : null}
+
+        {step === 3 ? (
           <section className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor={radiusId} className="text-xs uppercase tracking-wide text-slate-500">
@@ -412,7 +547,7 @@ function NewCampaignRoute() {
           </section>
         ) : null}
 
-        {step === 3 ? (
+        {step === 4 ? (
           <section className="space-y-4">
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
               <label className="text-xs uppercase tracking-wide text-slate-500 mb-3 block">
@@ -422,29 +557,29 @@ function NewCampaignRoute() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="venueMode"
-                    value="ids"
-                    checked={venueSelectionMode === 'ids'}
-                    onChange={() => setVenueSelectionMode('ids')}
+                    name="venueSource"
+                    value="direct"
+                    checked={formState.venueSource === 'direct'}
+                    onChange={() => setFormState(prev => ({ ...prev, venueSource: 'direct' }))}
                     className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
                   />
-                  <span className="text-sm text-slate-200">Select specific venues</span>
+                  <span className="text-sm text-slate-200">Specific Venues (Direct)</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
-                    name="venueMode"
-                    value="filters"
-                    checked={venueSelectionMode === 'filters'}
-                    onChange={() => setVenueSelectionMode('filters')}
+                    name="venueSource"
+                    value="platform"
+                    checked={formState.venueSource === 'platform'}
+                    onChange={() => setFormState(prev => ({ ...prev, venueSource: 'platform' }))}
                     className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
                   />
-                  <span className="text-sm text-slate-200">Use dynamic filters</span>
+                  <span className="text-sm text-slate-200">Platform Filters (Public)</span>
                 </label>
               </div>
             </div>
 
-            {venueSelectionMode === 'ids' ? (
+            {formState.venueSource === 'direct' ? (
               <div className="space-y-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
@@ -515,7 +650,7 @@ function NewCampaignRoute() {
           </section>
         ) : null}
 
-        {step === 4 ? (
+        {step === 5 ? (
           <section className="space-y-3 text-sm text-slate-300">
             <h2 className="text-base font-semibold text-white">Review summary</h2>
             <ul className="space-y-2">
@@ -523,24 +658,24 @@ function NewCampaignRoute() {
                 <strong>Name:</strong> {formState.name || '—'}
               </li>
               <li>
-                <strong>Status:</strong> {formState.status}
+                <strong>Status:</strong> {scheduleMode === 'immediate' ? 'Launching Immediately' : 'Scheduled'}
               </li>
               <li>
                 <strong>Schedule:</strong>{' '}
-                {formState.startAt || formState.endAt
-                  ? `${formState.startAt || 'Immediate'} → ${formState.endAt || 'Open ended'}`
-                  : 'Not scheduled'}
+                {scheduleMode === 'immediate' 
+                  ? 'Immediate' 
+                  : `${formState.startAt || 'TBD'} → ${formState.endAt || 'Open ended'}`}
               </li>
               <li>
                 <strong>Radius:</strong> {formState.radiusMeters || 'Not set'}
               </li>
               <li>
                 <strong>Venues:</strong>{' '}
-                {venueSelectionMode === 'ids'
+                {formState.venueSource === 'direct'
                   ? `${formState.venueIds.length} selected`
-                  : 'Dynamic filters configured'}
+                  : 'Platform Filters'}
               </li>
-              {venueSelectionMode === 'filters' && (
+              {formState.venueSource === 'platform' && (
                 <li className="text-xs text-slate-400 pl-4">
                   Filters: {Object.keys(formState.venueFilters).length > 0
                     ? Object.entries(formState.venueFilters)
@@ -549,6 +684,11 @@ function NewCampaignRoute() {
                         .join(', ')
                     : 'None'}
                 </li>
+              )}
+              {formState.hasPromoCode && (
+                 <li>
+                   <strong>Promo Code:</strong> {formState.promoCode || '(Auto-generated)'} • {formState.promoDiscountValue} {formState.promoDiscountType === 'percentage' ? '%' : 'credits'} off
+                 </li>
               )}
             </ul>
           </section>
@@ -568,11 +708,14 @@ function NewCampaignRoute() {
             disabled={
               isSubmitting ||
               (step === 0 && !formState.name) ||
-              (step === 3 &&
-                venueSelectionMode === 'ids' &&
+              (step === 2 &&
+                formState.hasPromoCode &&
+                (!formState.selectedPromoType || (formState.selectedPromoType.requiresValue && (!formState.promoDiscountValue || Number(formState.promoDiscountValue) <= 0)))) ||
+              (step === 4 &&
+                formState.venueSource === 'direct' &&
                 formState.venueIds.length === 0) ||
-              (step === 3 &&
-                venueSelectionMode === 'filters' &&
+              (step === 4 &&
+                formState.venueSource === 'platform' &&
                 Object.keys(formState.venueFilters).length === 0)
             }
             className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 disabled:cursor-not-allowed disabled:bg-cyan-500/50"
@@ -594,15 +737,14 @@ function slugify(value: string) {
     .replace(/-+/g, '-')
 }
 
-const VENUE_PRIMARY_TYPES: VenuePrimaryType[] = [
-  'hotel',
-  'restaurant',
-  'bar',
-  'cafe',
-  'mall',
-  'retail',
-  'entertainment',
-  'other',
+
+const GEOPOLITICAL_ZONES = [
+  { value: 'north_central', label: 'North Central' },
+  { value: 'north_east', label: 'North East' },
+  { value: 'north_west', label: 'North West' },
+  { value: 'south_east', label: 'South East' },
+  { value: 'south_south', label: 'South South' },
+  { value: 'south_west', label: 'South West' },
 ]
 
 function VenueFiltersForm({
@@ -612,62 +754,32 @@ function VenueFiltersForm({
   filters: VenueFilters
   onFiltersChange: (filters: VenueFilters) => void
 }) {
-  const cityId = useId()
-  const regionId = useId()
-  const countryCodeId = useId()
-  const statusId = useId()
-  const radiusLatId = useId()
-  const radiusLonId = useId()
-  const radiusMetersId = useId()
-  const isSharedId = useId()
+  const countriesQuery = useCountries()
+  const statesQuery = useStates(filters.countryCode)
+  const lgasQuery = useLgas(filters.stateId)
+  const venueTypesQuery = useVenueTypes()
+
+  // Auto-select Nigeria if it's the only option
+  if (
+    !filters.countryCode &&
+    countriesQuery.data?.length === 1 &&
+    countriesQuery.data[0].code === 'NG'
+  ) {
+    onFiltersChange({ ...filters, countryCode: countriesQuery.data[0].id })
+  }
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value, type } = event.target
-    const checked = (event.target as HTMLInputElement).checked
-
-    if (name === 'primaryType') {
-      const checkbox = event.target as HTMLInputElement
-      const currentTypes = filters.primaryType || []
-      const newTypes = checkbox.checked
-        ? [...currentTypes, value as VenuePrimaryType]
-        : currentTypes.filter((t) => t !== value)
-      onFiltersChange({
-        ...filters,
-        primaryType: newTypes.length > 0 ? newTypes : undefined,
-      })
+    const { name, value } = event.target
+    
+    // Clear dependent fields when parent changes
+    if (name === 'countryCode') {
+      onFiltersChange({ ...filters, countryCode: value, stateId: undefined, lgaId: undefined })
       return
     }
-
-    if (name.startsWith('radius.')) {
-      const field = name.split('.')[1] as 'latitude' | 'longitude' | 'meters'
-      const currentRadius = filters.radius || { latitude: undefined, longitude: undefined, meters: undefined }
-      const newValue = value ? Number(value) : undefined
-      const newRadius = {
-        ...currentRadius,
-        [field]: newValue,
-      }
-      // Only include radius if all required fields are present
-      if (newRadius.latitude !== undefined && newRadius.longitude !== undefined && newRadius.meters !== undefined) {
-        onFiltersChange({
-          ...filters,
-          radius: newRadius as VenueFilters['radius'],
-        })
-      } else {
-        onFiltersChange({
-          ...filters,
-          radius: undefined,
-        })
-      }
-      return
-    }
-
-    if (type === 'checkbox') {
-      onFiltersChange({
-        ...filters,
-        [name]: checked || undefined,
-      })
+    if (name === 'stateId') {
+      onFiltersChange({ ...filters, stateId: value, lgaId: undefined })
       return
     }
 
@@ -679,142 +791,95 @@ function VenueFiltersForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">
-        Configure filters to dynamically select venues. All filters are optional and can be combined.
-      </p>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-wide text-slate-500">
-            Primary type
-          </label>
-          <div className="space-y-2">
-            {VENUE_PRIMARY_TYPES.map((type) => (
-              <label key={type} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="primaryType"
-                  value={type}
-                  checked={filters.primaryType?.includes(type) ?? false}
-                  onChange={handleChange}
-                  className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
-                />
-                <span className="text-sm text-slate-200 capitalize">{type}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <label htmlFor={cityId} className="text-xs uppercase tracking-wide text-slate-500">
-            City
-          </label>
-          <input
-            id={cityId}
-            name="city"
-            value={filters.city || ''}
-            onChange={handleChange}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor={regionId} className="text-xs uppercase tracking-wide text-slate-500">
-            Region/State
-          </label>
-          <input
-            id={regionId}
-            name="region"
-            value={filters.region || ''}
-            onChange={handleChange}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor={countryCodeId} className="text-xs uppercase tracking-wide text-slate-500">
-            Country code (ISO-2)
-          </label>
-          <input
-            id={countryCodeId}
-            name="countryCode"
-            value={filters.countryCode || ''}
-            onChange={handleChange}
-            maxLength={2}
-            placeholder="US"
-            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor={statusId} className="text-xs uppercase tracking-wide text-slate-500">
-            Status
-          </label>
+          <label className="text-xs uppercase tracking-wide text-slate-500">Country</label>
           <select
-            id={statusId}
-            name="status"
-            value={filters.status || ''}
+            name="countryCode"
+            value={filters.countryCode ?? ''}
             onChange={handleChange}
             className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
           >
-            <option value="">Any</option>
-            <option value="active">Active</option>
-            <option value="draft">Draft</option>
-            <option value="inactive">Inactive</option>
+            <option value="">Select Country...</option>
+            {countriesQuery.data?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
           </select>
         </div>
+
         <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              id={isSharedId}
-              name="isShared"
-              checked={filters.isShared ?? false}
-              onChange={handleChange}
-              className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
-            />
-            <span className="text-xs uppercase tracking-wide text-slate-500">
-              Include shared venues
-            </span>
-          </label>
+          <label className="text-xs uppercase tracking-wide text-slate-500">State</label>
+          <select
+            name="stateId"
+            value={filters.stateId ?? ''}
+            onChange={handleChange}
+            disabled={!filters.countryCode}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50"
+          >
+            <option value="">Select State...</option>
+            {statesQuery.data?.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className="space-y-2 md:col-span-2">
-          <label className="text-xs uppercase tracking-wide text-slate-500">
-            Radius filter (optional)
-          </label>
-          <div className="grid gap-3 md:grid-cols-3">
-            <input
-              id={radiusLatId}
-              name="radius.latitude"
-              type="number"
-              step="any"
-              min={-90}
-              max={90}
-              value={filters.radius?.latitude || ''}
-              onChange={handleChange}
-              placeholder="Latitude"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-            />
-            <input
-              id={radiusLonId}
-              name="radius.longitude"
-              type="number"
-              step="any"
-              min={-180}
-              max={180}
-              value={filters.radius?.longitude || ''}
-              onChange={handleChange}
-              placeholder="Longitude"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-            />
-            <input
-              id={radiusMetersId}
-              name="radius.meters"
-              type="number"
-              min={0}
-              value={filters.radius?.meters || ''}
-              onChange={handleChange}
-              placeholder="Radius (meters)"
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-            />
-          </div>
+
+        <div className="space-y-2">
+          <label className="text-xs uppercase tracking-wide text-slate-500">LGA</label>
+          <select
+            name="lgaId"
+            value={filters.lgaId ?? ''}
+            onChange={handleChange}
+            disabled={!filters.stateId}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50"
+          >
+            <option value="">Select LGA...</option>
+            {lgasQuery.data?.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+         <div className="space-y-2">
+          <label className="text-xs uppercase tracking-wide text-slate-500">Venue Type</label>
+          <select
+            name="venueTypeId"
+            value={filters.venueTypeId ?? ''}
+            onChange={handleChange}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+          >
+            <option value="">Select Type...</option>
+            {venueTypesQuery.data?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-xs uppercase tracking-wide text-slate-500">Geopolitical Zone</label>
+          <select
+            name="geopoliticalZone"
+            value={filters.geopoliticalZone ?? ''}
+            onChange={handleChange}
+            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+          >
+            <option value="">Select Zone...</option>
+            {GEOPOLITICAL_ZONES.map((z) => (
+              <option key={z.value} value={z.value}>
+                {z.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
     </div>
   )
 }
+
