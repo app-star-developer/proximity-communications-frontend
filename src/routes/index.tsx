@@ -1,6 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { addDays, format, subDays } from "date-fns";
+import { addDays, format, subDays, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import { useId, useMemo, useState } from "react";
 import {
 	Area,
@@ -16,10 +16,17 @@ import { useAuthStore } from "../state/authStore";
 import { requireAuth } from "../utils/requireAuth";
 
 const DATE_PRESETS = [
+	{ label: "All Time", value: "all_time" },
+	{ label: "Today", value: "today" },
+	{ label: "This Week", value: "this_week" },
+	{ label: "This Month", value: "this_month" },
 	{ label: "Last 7 days", value: 7 },
 	{ label: "Last 30 days", value: 30 },
 	{ label: "Last 90 days", value: 90 },
+	{ label: "Custom Range", value: "custom" },
 ] as const;
+
+type DatePreset = (typeof DATE_PRESETS)[number];
 
 const EVENT_PRIORITY = [
 	"notification_sent",
@@ -42,18 +49,48 @@ export const Route = createFileRoute("/")({
 
 function DashboardOverview() {
 	const { user } = useAuthStore();
-	const [preset, setPreset] = useState<(typeof DATE_PRESETS)[number]>(
-		DATE_PRESETS[0],
-	);
+	const [preset, setPreset] = useState<DatePreset>(DATE_PRESETS[0]);
+	const [customStart, setCustomStart] = useState<string>("");
+	const [customEnd, setCustomEnd] = useState<string>("");
 
 	const { startAt, endAt } = useMemo(() => {
+		if (preset.value === "all_time") {
+			return { startAt: undefined, endAt: undefined };
+		}
+
+		if (preset.value === "custom") {
+			if (!customStart || !customEnd) {
+				return { startAt: undefined, endAt: undefined };
+			}
+			return {
+				startAt: new Date(customStart).toISOString(),
+				endAt: addDays(new Date(customEnd), 1).toISOString(),
+			};
+		}
+
 		const end = new Date();
-		const start = subDays(end, preset.value);
+		let start: Date;
+
+		switch (preset.value) {
+			case "today":
+				start = startOfDay(end);
+				break;
+			case "this_week":
+				start = startOfWeek(end, { weekStartsOn: 1 });
+				break;
+			case "this_month":
+				start = startOfMonth(end);
+				break;
+			default:
+				start = subDays(end, preset.value as number);
+				break;
+		}
+
 		return {
 			startAt: start.toISOString(),
 			endAt: addDays(end, 1).toISOString(),
 		};
-	}, [preset.value]);
+	}, [preset, customStart, customEnd]);
 
 	const summaryQuery = useEventSummary({
 		startAt,
@@ -61,10 +98,16 @@ function DashboardOverview() {
 		granularity: "day",
 	});
 
+	const isShortRange = useMemo(() => {
+		if (preset.value === "today") return true;
+		if (typeof preset.value === "number" && preset.value <= 7) return true;
+		return false;
+	}, [preset.value]);
+
 	const timeseriesQuery = useEventTimeseries({
 		startAt,
 		endAt,
-		granularity: preset.value <= 7 ? "hour" : "day",
+		granularity: isShortRange ? "hour" : "day",
 	});
 
 	const gradientId = useId();
@@ -92,12 +135,12 @@ function DashboardOverview() {
 			timeseriesQuery.data?.data.map((point) => ({
 				period: format(
 					new Date(point.period),
-					preset.value <= 7 ? "MMM d, ha" : "MMM d",
+					isShortRange ? "MMM d, ha" : "MMM d",
 				),
 				count: point.count,
 			})) ?? []
 		);
-	}, [preset.value, timeseriesQuery.data]);
+	}, [isShortRange, timeseriesQuery.data]);
 
 	const totalSent = summaryMetrics.find(
 		(metric) => metric.eventType === "notification_sent",
@@ -130,28 +173,48 @@ function DashboardOverview() {
 								: "Review the latest campaign telemetry across all organizations."}
 						</p>
 					</div>
-					<div className="flex items-center gap-2">
-						<span className="text-xs uppercase tracking-wide text-slate-500">
-							Range
-						</span>
-						<select
-							value={preset.value}
-							onChange={(event) => {
-								const next = DATE_PRESETS.find(
-									(option) => option.value === Number(event.target.value),
-								);
-								if (next) {
-									setPreset(next);
-								}
-							}}
-							className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-						>
-							{DATE_PRESETS.map((option) => (
-								<option key={option.value} value={option.value}>
-									{option.label}
-								</option>
-							))}
-						</select>
+					<div className="flex flex-col gap-2 md:flex-row md:items-center">
+						<div className="flex items-center gap-2">
+							<span className="text-xs uppercase tracking-wide text-slate-500">
+								Range
+							</span>
+							<select
+								value={preset.value}
+								onChange={(event) => {
+									const next = DATE_PRESETS.find(
+										(option) => option.value.toString() === event.target.value,
+									);
+									if (next) {
+										setPreset(next);
+									}
+								}}
+								className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+							>
+								{DATE_PRESETS.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+						</div>
+
+						{preset.value === "custom" && (
+							<div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+								<input
+									type="date"
+									value={customStart}
+									onChange={(e) => setCustomStart(e.target.value)}
+									className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 outline-none focus:border-cyan-500"
+								/>
+								<span className="text-xs text-slate-500">to</span>
+								<input
+									type="date"
+									value={customEnd}
+									onChange={(e) => setCustomEnd(e.target.value)}
+									className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 outline-none focus:border-cyan-500"
+								/>
+							</div>
+						)}
 					</div>
 				</header>
 				{summaryQuery.isError ? (
@@ -196,7 +259,7 @@ function DashboardOverview() {
 								Engagement over time
 							</h3>
 							<p className="text-xs text-slate-500">
-								Aggregated event counts by {preset.value <= 7 ? "hour" : "day"}.
+								Aggregated event counts by {Number(preset.value) <= 7 ? "hour" : "day"}.
 							</p>
 						</div>
 						{timeseriesQuery.isFetching ? (

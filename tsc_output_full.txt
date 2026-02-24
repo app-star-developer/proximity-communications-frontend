@@ -1,9 +1,5 @@
-src/routes/__root.tsx(66,8): error TS6133: 'handleTenantChange' is declared but its value is never read.
-src/routes/dashboard/index.tsx(3,36): error TS6133: 'useEffect' is declared but its value is never read.
-src/routes/dashboard/index.tsx(253,37): error TS2365: Operator '<=' cannot be applied to types 'string | number' and 'number'.
 src/routes/dashboard/venues/new.tsx(283,11): error TS6133: 'NIGERIA_UUID' is declared but its value is never read.
 src/routes/dashboard/venues/new.tsx(505,33): error TS2322: Type '{ isLoading: boolean; disabled: boolean; options: { label: string; value: string; }[] | undefined; value: { label: string; value: string; } | null; onChange: (val: any) => void; styles: { control: (base: any) => any; menu: (base: any) => any; option: (base: any, state: any) => any; singleValue: (base: any) => any; i...' is not assignable to type 'IntrinsicAttributes & Omit<PublicBaseSelectProps<any, false, GroupBase<any>>, StateManagedPropKeys> & Partial<...> & StateManagerAdditionalProps<...> & RefAttributes<...>'.
   Property 'disabled' does not exist on type 'IntrinsicAttributes & Omit<PublicBaseSelectProps<any, false, GroupBase<any>>, StateManagedPropKeys> & Partial<...> & StateManagerAdditionalProps<...> & RefAttributes<...>'. Did you mean 'isDisabled'?
 src/routes/dashboard/venues/new.tsx(820,9): error TS6133: 'lastResult' is declared but its value is never read.
-src/routes/index.tsx(262,37): error TS2365: Operator '<=' cannot be applied to types 'string | number' and 'number'.
 src/routes/platform/tenants/new.tsx(1,10): error TS6133: 'useId' is declared but its value is never read.

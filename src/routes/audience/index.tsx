@@ -256,9 +256,9 @@ function AudienceRoute() {
                         border: '1px solid rgba(148,163,184,0.2)',
                         color: '#e2e8f0',
                       }}
-                      formatter={(value: number, name: string, payload: any) => [
-                        value.toLocaleString(),
-                        payload?.payload?.label ?? name,
+                      formatter={(value, name, payload) => [
+                        value?.toLocaleString() ?? '0',
+                        payload?.payload?.label ?? name ?? '',
                       ]}
                       labelFormatter={(label) => `Campaign: ${label}`}
                     />

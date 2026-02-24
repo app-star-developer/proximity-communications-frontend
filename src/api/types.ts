@@ -147,7 +147,9 @@ export interface CreateVenueRequest {
 	description?: string;
 	addressLine1?: string;
 	addressLine2?: string;
-	city?: string;
+	city: string;
+	stateId: string;
+	lgaId: string;
 	region?: string;
 	postalCode?: string;
 	countryCode?: string;
@@ -265,6 +267,28 @@ export interface TenantListResponse {
 	};
 }
 
+export type BrandCategory = "alcohol" | "non_alcoholic" | "fmcg" | "other";
+
+export interface BrandProduct {
+	brandName: string;
+	category: BrandCategory;
+	nafdacNumber?: string;
+	imageUrl: string;
+}
+
+export interface BrandPartnerDetails {
+	rcNumber: string;
+	registeredAddress: string;
+	certificateOfIncorporationUrl: string;
+	isAgency: boolean;
+	jobTitle?: string;
+	phoneNumber: string;
+	idCardUrl?: string;
+	authorizationLetterUrl?: string;
+	products: BrandProduct[];
+	termsAccepted: boolean;
+}
+
 export interface CreateTenantRequest {
 	tenantName: string;
 	tenantSlug?: string;
@@ -273,6 +297,7 @@ export interface CreateTenantRequest {
 	password: string;
 	firstName?: string;
 	lastName?: string;
+	brandPartnerDetails?: BrandPartnerDetails;
 }
 
 export interface UpdateTenantRequest {
@@ -408,6 +433,8 @@ export interface UpdateVenueRequest {
 	addressLine1?: string;
 	addressLine2?: string;
 	city?: string;
+	stateId?: string;
+	lgaId?: string;
 	region?: string;
 	postalCode?: string;
 	countryCode?: string;
@@ -472,6 +499,8 @@ export interface CreateCampaignPromoCodeRequest {
 	promoTypeId?: string;
 	discountType: "percentage" | "fixed";
 	discountValue: number;
+	menuItemIds?: string[];
+	promoConfig?: Record<string, unknown>;
 	targetingConfiguration?: Record<string, unknown>;
 }
 
@@ -541,6 +570,7 @@ export interface Device {
 	radarUserId?: string;
 	name?: string;
 	email?: string;
+	phoneNumber?: string;
 	expoPushToken?: string;
 	metadata?: Record<string, unknown>;
 	firstSeen?: string;
@@ -831,4 +861,15 @@ export interface PromoType {
 	isActive: boolean;
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface VenueBreakdown {
+	venueName: string;
+	redemptions: number;
+}
+
+export interface CampaignAdminStats {
+	totalClaims: number;
+	totalRedemptions: number;
+	venueBreakdown: VenueBreakdown[];
 }

@@ -6,7 +6,7 @@ import type {
 
 export interface MediaUploadListParams {
 	search?: string;
-	folder?: "campaigns" | "promo-codes";
+	folder?: "campaigns" | "promo-codes" | "tenants" | "brands";
 	limit?: number;
 	offset?: number;
 }
@@ -19,7 +19,7 @@ export const uploadsApi = {
 		return response.data
 	},
 
-	async upload(file: File, name?: string, folder: "campaigns" | "promo-codes" = "campaigns") {
+	async upload(file: File, name?: string, folder: "campaigns" | "promo-codes" | "tenants" | "brands" = "campaigns") {
 		const formData = new FormData();
 		formData.append("image", file);
 		if (name) {

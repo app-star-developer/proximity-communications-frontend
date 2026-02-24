@@ -7,9 +7,10 @@ interface MediaLibraryProps {
 	onSelect?: (imageUrl: string) => void;
 	folder?: "campaigns" | "promo-codes";
 	standalone?: boolean;
+	onClose?: () => void;
 }
 
-export function MediaLibrary({ onSelect, folder: initialFolder = "campaigns", standalone = false }: MediaLibraryProps) {
+export function MediaLibrary({ onSelect, folder: initialFolder = "campaigns", standalone = false, onClose }: MediaLibraryProps) {
 	const [search, setSearch] = useState("");
 	const [folder, setFolder] = useState<"campaigns" | "promo-codes">(initialFolder);
 	const [uploading, setUploading] = useState(false);
@@ -91,16 +92,27 @@ export function MediaLibrary({ onSelect, folder: initialFolder = "campaigns", st
 					<h2 className="text-2xl font-bold text-white">Media Library</h2>
 					<p className="text-sm text-slate-400">Manage and select images for your campaigns</p>
 				</div>
-				<label className="flex cursor-pointer items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-500 disabled:opacity-50">
-					{uploading ? "Uploading..." : "Upload Image"}
-					<input
-						type="file"
-						className="hidden"
-						accept="image/*"
-						onChange={handleFileUpload}
-						disabled={uploading}
-					/>
-				</label>
+				<div className="flex items-center gap-2">
+					<label className="flex cursor-pointer items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-500 disabled:opacity-50">
+						{uploading ? "Uploading..." : "Upload Image"}
+						<input
+							type="file"
+							className="hidden"
+							accept="image/*"
+							onChange={handleFileUpload}
+							disabled={uploading}
+						/>
+					</label>
+					{onClose && (
+						<button
+							type="button"
+							onClick={onClose}
+							className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+						>
+							Close
+						</button>
+					)}
+				</div>
 			</div>
 
 			<div className="flex flex-col gap-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 md:flex-row md:items-center">

@@ -135,5 +135,12 @@ export const campaignsApi = {
       `/campaigns/${campaignId}/notifications/venues/${venueId}`,
     )
   },
+
+  async getAdminStats(campaignId: string) {
+    const response = await api.get<CampaignAdminStats>(
+      `/admin/campaigns/${campaignId}/stats`,
+    )
+    return response.data
+  },
 }
 

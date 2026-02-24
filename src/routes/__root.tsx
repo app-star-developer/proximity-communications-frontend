@@ -1,4 +1,4 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
+// import { TanStackDevtools } from "@tanstack/react-devtools";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	createRootRoute,
@@ -6,7 +6,7 @@ import {
 	Outlet,
 	useNavigate,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+// import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useEffect, useRef } from "react";
 import { authApi } from "../api/modules/auth";
 import { AppLayout } from "../app/layouts/AppLayout";
@@ -14,7 +14,6 @@ import { LighthouseLogo } from "../components/LighthouseLogo";
 import { useAccessibleTenants } from "../hooks/useAccessibleTenants";
 import { authStore, useAuthStore } from "../state/authStore";
 import { useUIStore } from "../state/uiStore";
-import { clearTenantScopedCache } from "../utils/tenantContext";
 import { canManageUsers, isPlatformUser } from "../utils/permissions";
 
 function RootComponent() {
@@ -63,27 +62,7 @@ function GlobalNav() {
 		logoutMutation.mutate();
 	};
 
-	const handleTenantChange = (tenantId: string) => {
-		if (!tenantId) {
-			authStore.clearTenantSelection();
-			clearTenantScopedCache(queryClient);
-			navigate({ to: "/select-tenant" });
-			return;
-		}
 
-		const next = tenantOptions.find((t) => t.tenantId === tenantId);
-		if (!next) {
-			return;
-		}
-
-		if (tenantId === selectedTenant) {
-			return;
-		}
-
-		authStore.selectTenant(tenantId, next.accessLevel);
-		clearTenantScopedCache(queryClient);
-		navigate({ to: "/" });
-	};
 
 	return (
 		<header className="sticky top-0 z-40 mb-6 w-full border-b border-slate-800/60 bg-slate-950/80 px-4 py-3 backdrop-blur md:px-8">
@@ -99,7 +78,7 @@ function GlobalNav() {
 								{ to: "/dashboard/venues", label: "Venues" },
 								{ to: "/audience", label: "Audience" },
 								{ to: "/notifications", label: "Notifications" },
-								{ to: "/media-library", label: "Media Library" },
+								// { to: "/media-library", label: "Media Library" },
 								// { to: "/geofencing", label: "Geofencing" },
 								...(isPlatformUser(user)
 									? [{ to: "/platform/tenants", label: "Platform" }]
@@ -128,27 +107,19 @@ function GlobalNav() {
 					{status === "authenticated" && user ? (
 						<>
 							{isPlatformUser(user) ? (
-								<div className="hidden items-center gap-2 md:flex">
-									<label
-										className="text-xs font-medium text-slate-400"
-										htmlFor="tenant-context"
+								<div className="hidden items-center gap-3 md:flex">
+									<div className="flex flex-col items-end">
+										<p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Organization</p>
+										<p className="text-sm font-semibold text-slate-100">
+											{tenantOptions.find(t => t.tenantId === selectedTenant)?.tenantName || "None selected"}
+										</p>
+									</div>
+									<Link
+										to="/select-tenant"
+										className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-cyan-400 transition hover:border-cyan-500 hover:text-cyan-300"
 									>
-										Organization
-									</label>
-									<select
-										id="tenant-context"
-										className="rounded-full border border-slate-800 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-100 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-										value={selectedTenant ?? ""}
-										onChange={(e) => handleTenantChange(e.target.value)}
-										disabled={accessibleTenantsQuery.isLoading}
-									>
-										<option value="">Select…</option>
-										{tenantOptions.map((t) => (
-											<option key={t.tenantId} value={t.tenantId}>
-												{t.tenantName}
-											</option>
-										))}
-									</select>
+										Switch
+									</Link>
 								</div>
 							) : null}
 							<span className="hidden rounded-full border border-slate-800 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-200 md:inline">

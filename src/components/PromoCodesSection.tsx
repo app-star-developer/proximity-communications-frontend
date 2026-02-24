@@ -190,7 +190,6 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 
 			{showCreateForm && (
 				<CreatePromoCodeForm
-					campaignId={campaignId}
 					promoTypes={promoTypes}
 					onSubmit={(payload) => createMutation.mutate(payload)}
 					onCancel={() => setShowCreateForm(false)}
@@ -353,13 +352,11 @@ function PromoCodeCard({
 }
 
 function CreatePromoCodeForm({
-	campaignId,
     promoTypes,
 	onSubmit,
 	onCancel,
 	isPending,
 }: {
-	campaignId: string
     promoTypes: PromoType[]
 	onSubmit: (payload: CreatePromoCodeRequest) => void
 	onCancel: () => void
@@ -799,13 +796,18 @@ function EditPromoCodeForm({
              </div>
 
             {showMediaLibrary && (
-                 <MediaLibrary
-                     onSelect={(url) => {
-                         setFormState(prev => ({ ...prev, imageUrl: url }))
-                         setShowMediaLibrary(false)
-                     }}
-                     onClose={() => setShowMediaLibrary(false)}
-                 />
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+                    <div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl p-6 overflow-y-auto">
+                         <MediaLibrary
+                             folder="promo-codes"
+                             onSelect={(url) => {
+                                 setFormState(prev => ({ ...prev, imageUrl: url }))
+                                 setShowMediaLibrary(false)
+                             }}
+                             onClose={() => setShowMediaLibrary(false)}
+                         />
+                    </div>
+                </div>
              )}
 
 			<div className="flex items-center justify-end gap-3">

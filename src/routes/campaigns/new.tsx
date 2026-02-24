@@ -112,6 +112,9 @@ function NewCampaignRoute() {
     promoDiscountValue: '',
     promoTypeId: '',
     selectedPromoType: undefined as PromoType | undefined,
+    // New fields for promoConfig
+    menuItemIds: [] as string[],
+    promoConfig: {} as any,
   })
   
   const [scheduleMode, setScheduleMode] = useState<'immediate' | 'scheduled'>('immediate')
@@ -217,6 +220,8 @@ function NewCampaignRoute() {
         promoTypeId: formState.promoTypeId,
         discountType: formState.selectedPromoType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
         discountValue: formState.promoDiscountValue ? Number(formState.promoDiscountValue) : 0,
+        menuItemIds: formState.menuItemIds.length > 0 ? formState.menuItemIds : undefined,
+        promoConfig: Object.keys(formState.promoConfig).length > 0 ? formState.promoConfig : undefined,
         targetingConfiguration: {} // Simplification for now, as per plan
       } : undefined
     }
@@ -322,26 +327,15 @@ function NewCampaignRoute() {
 
         {showMediaLibrary && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-            <div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
-              <div className="flex items-center justify-between border-b border-slate-800 p-4">
-                <h3 className="text-lg font-semibold text-white">Select Campaign Image</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowMediaLibrary(false)}
-                  className="text-slate-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="h-full overflow-y-auto p-4 pb-20">
-                <MediaLibrary
-                  folder="campaigns"
-                  onSelect={(url) => {
-                    setFormState((prev) => ({ ...prev, imageUrl: url }))
-                    setShowMediaLibrary(false)
-                  }}
-                />
-              </div>
+            <div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl p-6 overflow-y-auto">
+              <MediaLibrary
+                folder="campaigns"
+                onSelect={(url) => {
+                  setFormState((prev) => ({ ...prev, imageUrl: url }))
+                  setShowMediaLibrary(false)
+                }}
+                onClose={() => setShowMediaLibrary(false)}
+              />
             </div>
           </div>
         )}
@@ -501,6 +495,69 @@ function NewCampaignRoute() {
                       />
                    </div>
                  )}
+
+                  {formState.selectedPromoType?.slug === 'price-discount' && (
+                    <div className="md:col-span-2 space-y-2">
+                       <label className="text-xs uppercase tracking-wide text-slate-500">Menu Item IDs (Optional, comma-separated)</label>
+                       <input
+                         name="menuItemIdsRaw"
+                         onChange={(e) => {
+                            const ids = e.target.value.split(',').map(id => id.trim()).filter(Boolean)
+                            setFormState(prev => ({ ...prev, menuItemIds: ids }))
+                         }}
+                         placeholder="UUID-1, UUID-2..."
+                         className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                       />
+                       <p className="text-[10px] text-slate-500 italic">Leave empty for a general venue-wide discount.</p>
+                    </div>
+                  )}
+
+                  {formState.selectedPromoType?.slug === 'combo-offer' && (
+                    <div className="md:col-span-2 grid gap-4 md:grid-cols-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800">
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-wide text-slate-500">Buy Product</label>
+                        <input
+                          value={formState.promoConfig.buyProduct || ''}
+                          onChange={(e) => setFormState(prev => ({ ...prev, promoConfig: { ...prev.promoConfig, buyProduct: e.target.value } }))}
+                          placeholder="Heineken 33cl"
+                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-wide text-slate-500">Get Product</label>
+                        <input
+                          value={formState.promoConfig.getProduct || ''}
+                          onChange={(e) => setFormState(prev => ({ ...prev, promoConfig: { ...prev.promoConfig, getProduct: e.target.value } }))}
+                          placeholder="Heineken 33cl"
+                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs uppercase tracking-wide text-slate-500">% Discount on Gift</label>
+                        <input
+                          type="number"
+                          value={formState.promoConfig.getDiscount || ''}
+                          onChange={(e) => setFormState(prev => ({ ...prev, promoConfig: { ...prev.promoConfig, getDiscount: Number(e.target.value) } }))}
+                          placeholder="100"
+                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {formState.selectedPromoType?.slug === 'time-based' && (
+                    <div className="md:col-span-2 space-y-2">
+                       <label className="text-xs uppercase tracking-wide text-slate-500">Available Hours (0-23, comma-separated)</label>
+                       <input
+                         onChange={(e) => {
+                            const hours = e.target.value.split(',').map(h => parseInt(h.trim(), 10)).filter(h => !isNaN(h))
+                            setFormState(prev => ({ ...prev, promoConfig: { ...prev.promoConfig, availableHours: hours } }))
+                         }}
+                         placeholder="21, 22, 23"
+                         className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                       />
+                    </div>
+                  )}
                  
                  {formState.selectedPromoType?.description && (
                    <div className="md:col-span-2 text-xs text-slate-500 italic">

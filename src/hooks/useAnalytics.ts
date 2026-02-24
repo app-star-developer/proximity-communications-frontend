@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { queryKeys } from '../api/queryKeys'
 import { eventsApi } from '../api/modules/events'
+import { campaignsApi } from '../api/modules/campaigns'
 import type { EventSummaryParams } from '../api/modules/events'
 
 export function useEventSummary(filters: EventSummaryParams) {
@@ -25,3 +26,10 @@ export function useEventTimeseries(filters: EventSummaryParams) {
   })
 }
 
+export function useCampaignAdminStats(campaignId: string) {
+  return useQuery({
+    queryKey: queryKeys.campaignAdminStats(campaignId),
+    queryFn: () => campaignsApi.getAdminStats(campaignId),
+    enabled: !!campaignId,
+  })
+}

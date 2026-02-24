@@ -18,5 +18,6 @@ export const queryKeys = {
   audienceDevice: (deviceId: string) => ['audience', 'device', deviceId] as const,
   audienceSegmentation: () => ['audience', 'segmentation'] as const,
   uploads: (params?: unknown) => ['uploads', params ?? {}] as const,
+  campaignAdminStats: (campaignId: string) => ['campaign-admin-stats', campaignId] as const,
 }
 

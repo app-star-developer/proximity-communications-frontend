@@ -531,28 +531,15 @@ function CampaignEditRoute() {
 
 				{showMediaLibrary && (
 					<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-						<div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl">
-							<div className="flex items-center justify-between border-b border-slate-800 p-4">
-								<h3 className="text-lg font-semibold text-white">
-									Select Campaign Image
-								</h3>
-								<button
-									type="button"
-									onClick={() => setShowMediaLibrary(false)}
-									className="text-slate-400 hover:text-white"
-								>
-									✕
-								</button>
-							</div>
-							<div className="h-full overflow-y-auto p-4 pb-20">
-								<MediaLibrary
-									folder="campaigns"
-									onSelect={(url) => {
-										setFormState((prev) => ({ ...prev, imageUrl: url }));
-										setShowMediaLibrary(false);
-									}}
-								/>
-							</div>
+						<div className="relative h-full max-h-[80vh] w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl p-6 overflow-y-auto">
+							<MediaLibrary
+								folder="campaigns"
+								onSelect={(url) => {
+									setFormState((prev) => ({ ...prev, imageUrl: url }));
+									setShowMediaLibrary(false);
+								}}
+								onClose={() => setShowMediaLibrary(false)}
+							/>
 						</div>
 					</div>
 				)}

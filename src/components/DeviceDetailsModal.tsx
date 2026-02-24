@@ -91,6 +91,14 @@ export function DeviceDetailsModal({
                   </dd>
                 </div>
               )}
+               {device.phoneNumber && (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs text-slate-500">Phone Number</dt>
+                  <dd className="mt-1 text-sm text-white font-mono break-all">
+                    {device.phoneNumber}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs text-slate-500">Created At</dt>
                 <dd className="mt-1 text-sm text-white">{formatDate(device.createdAt)}</dd>
