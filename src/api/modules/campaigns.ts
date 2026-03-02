@@ -9,6 +9,7 @@ import type {
   CampaignNotificationConfigResponse,
   CreateCampaignNotificationConfigRequest,
   UpdateCampaignNotificationConfigRequest,
+  CampaignAdminStats,
 } from '../types'
 
 export interface CampaignListParams {

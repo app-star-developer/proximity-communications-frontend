@@ -280,7 +280,7 @@ function ManualVenueForm({
 	const { data: states, isLoading: isLoadingStates } = useStates("550e8400-e29b-41d4-a716-446655440001"); // Example Nigeria UUID or fetch it
     // Wait, let's try to get initial countries first to find Nigeria. 
     // Actually, for this specific project, the guide uses a specific UUID in the example.
-    const NIGERIA_UUID = "550e8400-e29b-41d4-a716-446655440001"; // Placeholder, normally I'd fetch.
+    // const NIGERIA_UUID = "550e8400-e29b-41d4-a716-446655440001"; // Placeholder, normally I'd fetch.
     
 	const { data: lgas, isLoading: isLoadingLgas } = useLgas(selectedStateId);
 
@@ -502,7 +502,7 @@ function ManualVenueForm({
 							<Select
 								{...field}
                                 isLoading={isLoadingLgas}
-                                disabled={!selectedStateId}
+                                // disabled={!selectedStateId}
 								options={lgas?.map(l => ({ label: l.name, value: l.id }))}
 								value={lgas?.find(l => l.id === field.value) ? { label: lgas.find(l => l.id === field.value)!.name, value: field.value } : null}
 								onChange={(val: any) => field.onChange(val?.value)}
@@ -817,7 +817,7 @@ function CsvUploadVenueForm({
 	const fileId = useId();
 	const csvTextareaId = useId();
 	const [csvText, setCsvText] = useState("");
-	const [lastResult, setLastResult] = useState<VenueIngestionResult | null>(
+	const [_lastResult, setLastResult] = useState<VenueIngestionResult | null>(
 		null,
 	);
 
