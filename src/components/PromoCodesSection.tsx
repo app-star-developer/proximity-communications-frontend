@@ -37,6 +37,7 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
     const promoTypesQuery = usePromoTypes()
     const promoTypes = promoTypesQuery.data || []
 
+
 	const createMutation = useMutation({
 		mutationFn: (payload: CreatePromoCodeRequest) =>
 			promoCodesApi.create(campaignId, payload),
@@ -171,6 +172,8 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 	}
 
 	const promoCodes = promoCodesQuery.data?.data ?? []
+		const promoCode = promoCodes[0]
+
 
 	return (
 		<section className="space-y-4">
@@ -211,7 +214,6 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 				</div>
 			) : (
 				<div className="space-y-2">
-					{promoCodes.map((promoCode) => (
 						<PromoCodeCard
 							key={promoCode.id}
 							promoCode={promoCode}
@@ -223,7 +225,6 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 							isRegenerating={regenerateMutation.isPending}
 							isUpdating={updateMutation.isPending}
 						/>
-					))}
 				</div>
 			)}
 		</section>
@@ -280,11 +281,11 @@ function PromoCodeCard({
 			<div className="flex items-start justify-between">
 				<div className="flex-1">
 					<div className="flex items-center gap-3">
-						<code className="rounded bg-slate-950 px-2 py-1 font-mono text-sm font-semibold text-cyan-300">
+						{/* <code className="rounded bg-slate-950 px-2 py-1 font-mono text-sm font-semibold text-cyan-300">
 							{promoCode.code}
-						</code>
+						</code> */}
 						<span
-							className={`rounded-full px-2 py-0.5 text-xs ${
+							className={`rounded-full px-2 py-0.5 text-xs capitalize ${
 								promoCode.status === 'active'
 									? 'bg-green-500/20 text-green-300'
 									: promoCode.status === 'draft'
@@ -310,7 +311,7 @@ function PromoCodeCard({
                             </div>
                         )}
 						<div>
-							Uses: {promoCode.currentUses} / {promoCode.maxUses ?? '∞'}
+							Uses: {promoCode.currentUses} / {campaign?.maxRedemptions ?? '∞'}
 						</div>
 						{promoCode.maxUsesPerUser && (
 							<div>Max per user: {promoCode.maxUsesPerUser}</div>
@@ -592,7 +593,7 @@ function CreatePromoCodeForm({
 function EditPromoCodeForm({
 	promoCode,
     promoTypes,
-	campaign: _campaign,
+	campaign,
 	onSubmit,
 	onCancel,
 	isPending,
@@ -653,7 +654,7 @@ function EditPromoCodeForm({
 					{promoCode.code}
 				</code>
 				<span className="text-xs text-slate-500">
-					Uses: {promoCode.currentUses} / {promoCode.maxUses ?? '∞'}
+					Uses: {promoCode.currentUses} / {campaign?.maxRedemptions ?? '∞'}
 				</span>
 			</div>
 

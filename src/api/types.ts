@@ -196,6 +196,7 @@ export interface Campaign {
 		totalRedemptions: number;
 		totalClaims: number;
 	} | null;
+	venueBreakdown?: VenueBreakdown[] | null;
 	createdAt: string;
 	updatedAt: string;
 }

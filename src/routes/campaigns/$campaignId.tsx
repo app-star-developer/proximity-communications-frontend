@@ -8,8 +8,8 @@ import type { QueryClient } from '@tanstack/react-query'
 import { requireAuth } from '../../utils/requireAuth'
 import { queryKeys } from '../../api/queryKeys'
 import { campaignsApi } from '../../api/modules/campaigns'
-import { useEventSummary, useCampaignAdminStats } from '../../hooks/useAnalytics'
-import type { ApiErrorResponse, VenueBreakdown } from '../../api/types'
+import { useEventSummary } from '../../hooks/useAnalytics'
+import type { ApiErrorResponse } from '../../api/types'
 import { useUIStore } from '../../state/uiStore'
 import { PromoCodesSection } from '../../components/PromoCodesSection'
 
@@ -49,7 +49,6 @@ function CampaignDetailRoute() {
   const navigate = useNavigate()
   const { pushToast } = useUIStore()
   const summaryQuery = useEventSummary({ campaignId: campaign.id })
-  const adminStatsQuery = useCampaignAdminStats(campaign.id)
   const statusStyles = getStatusStyles(campaign.status)
   const isCancellable = ['draft', 'scheduled', 'active', 'paused'].includes(
     campaign.status,
@@ -235,45 +234,42 @@ function CampaignDetailRoute() {
                 <h2 className="text-base font-semibold text-white">Aggregated redemptions</h2>
                 <p className="text-xs text-slate-500">Platform-wide performance across participating venues.</p>
               </div>
-              {adminStatsQuery.isFetching && <span className="text-xs text-slate-500">Refreshing…</span>}
             </header>
 
-            {adminStatsQuery.isError ? (
-              <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-xs text-red-200">
-                Unable to load aggregated redemption stats.
+            {!campaign.stats ? (
+              <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-8 text-center text-sm text-slate-500">
+                No redemption statistics available yet.
               </div>
-            ) : adminStatsQuery.isLoading ? (
-               <div className="grid gap-4 md:grid-cols-2">
-                 <div className="h-20 animate-pulse rounded-xl bg-slate-900"></div>
-                 <div className="h-20 animate-pulse rounded-xl bg-slate-900"></div>
-               </div>
             ) : (
               <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Metric title="Total Claims" value={adminStatsQuery.data?.totalClaims ?? 0} />
-                  <Metric title="Total Redemptions" value={adminStatsQuery.data?.totalRedemptions ?? 0} />
+                  <Metric title="Total Claims" value={campaign.stats.totalClaims} />
+                  <Metric title="Total Redemptions" value={campaign.stats.totalRedemptions} />
                 </div>
 
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-slate-300">Venue Breakdown</h3>
                   <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/40">
                     <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-900 text-slate-400">
+                      <thead className="border-b border-slate-800 bg-slate-900/50 text-slate-400">
                         <tr>
-                          <th className="px-4 py-2 font-medium">Venue Name</th>
-                          <th className="px-4 py-2 font-medium text-right">Redemptions</th>
+                          <th className="px-4 py-2 font-medium">Venue</th>
+                          <th className="px-4 py-2 text-right font-medium">Redemptions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800">
-                        {adminStatsQuery.data?.venueBreakdown.map((item: VenueBreakdown, idx: number) => (
-                          <tr key={idx} className="text-slate-300">
-                            <td className="px-4 py-2">{item.venueName}</td>
-                            <td className="px-4 py-2 text-right font-medium text-white">{item.redemptions.toLocaleString()}</td>
-                          </tr>
-                        ))}
-                        {(!adminStatsQuery.data?.venueBreakdown || adminStatsQuery.data.venueBreakdown.length === 0) && (
+                      <tbody className="divide-y divide-slate-800 text-slate-300">
+                        {campaign.venueBreakdown?.length ? (
+                          campaign.venueBreakdown.map((item, idx) => (
+                            <tr key={idx} className="hover:bg-slate-900/30">
+                              <td className="px-4 py-2">{item.venueName}</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{item.redemptions}</td>
+                            </tr>
+                          ))
+                        ) : (
                           <tr>
-                            <td colSpan={2} className="px-4 py-6 text-center text-slate-500 italic">No redemptions recorded yet.</td>
+                            <td colSpan={2} className="px-4 py-4 text-center text-slate-500 italic">
+                              No venue activity recorded.
+                            </td>
                           </tr>
                         )}
                       </tbody>
