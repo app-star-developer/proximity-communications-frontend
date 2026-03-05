@@ -361,8 +361,10 @@ function CampaignDetailRoute() {
               Linked venues
             </h2>
             <p className="text-xs text-slate-500">
-              {campaign.isAllVenues
-                ? "Targeting all organization venues."
+              {campaign.isPlatform && campaign.includeDirectVenues
+                ? "Targeting all platform venues (including partner-owned)."
+                : campaign.isPlatform
+                ? "Targeting platform venues."
                 : `${campaign.totalVenuesCount} venue${campaign.totalVenuesCount !== 1 ? 's' : ''} targeted.`}
             </p>
           </div>
@@ -374,7 +376,7 @@ function CampaignDetailRoute() {
             Adjust venues
           </Link>
         </header>
-        {campaign.totalVenuesCount === 0 && !campaign.isAllVenues ? (
+        {campaign.totalVenuesCount === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/40 px-4 py-6 text-center text-sm text-slate-400">
             No venues have been attached yet. Sync from HappyHour locations or
             import via CSV.
@@ -389,7 +391,11 @@ function CampaignDetailRoute() {
                 <div className="font-medium text-slate-200">{venue.name}</div>
                 <div className="text-slate-500">
                   {venue.city ? `${venue.city} • ` : ''}
-                  <span className="capitalize">{venue.primaryType || 'Venue'}</span>
+                  <span className={`capitalize px-1.5 py-0.5 rounded text-[10px] ${
+                    venue.invitationStatus === 'accepted' ? 'bg-emerald-500/20 text-emerald-300' :
+                    venue.invitationStatus === 'pending' ? 'bg-amber-500/20 text-amber-300' :
+                    'bg-red-500/20 text-red-300'
+                  }`}>{venue.invitationStatus}</span>
                 </div>
               </li>
             ))}

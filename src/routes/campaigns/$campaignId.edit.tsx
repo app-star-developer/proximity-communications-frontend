@@ -157,8 +157,8 @@ function CampaignEditRoute() {
 
 	// Determine initial venue selection mode based on campaign data
 	const initialVenueMode: "ids" | "filters" | "all" =
-		campaign.isAllVenues
-			? "all"
+		campaign.isPlatform
+			? "filters"
 			: campaign.venueFilters && Object.keys(campaign.venueFilters).length > 0
 			? "filters"
 			: "ids"
@@ -192,9 +192,7 @@ function CampaignEditRoute() {
 		}
 
 		const newMode: "ids" | "filters" | "all" =
-			camp.isAllVenues
-				? "all"
-				: camp.venueSource === "platform" || (camp.venueFilters && Object.keys(camp.venueFilters).length > 0)
+			camp.isPlatform || (camp.venueFilters && Object.keys(camp.venueFilters).length > 0)
 				? "filters"
 				: "ids";
 
@@ -207,7 +205,7 @@ function CampaignEditRoute() {
 			radiusMeters: camp.radiusMeters?.toString() ?? "",
 			budgetCents: camp.budgetCents?.toString() ?? "",
 			timezone: camp.timezone ?? "",
-			venueIds: Array.isArray(camp.venueIds) ? camp.venueIds : [],
+			venueIds: camp.venues?.map((v) => v.id) ?? [],
 			venueFilters: camp.venueFilters ?? ({} as VenueFilters),
 			imageUrl: camp.imageUrl ?? "",
 			initialMode: newMode,

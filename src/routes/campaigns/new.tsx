@@ -116,6 +116,7 @@ function NewCampaignRoute() {
     isRecurrent: true,
     notificationTitle: '',
     notificationBody: '',
+    maxRedemptions: '',
   })
   
   const [scheduleMode, setScheduleMode] = useState<'immediate' | 'scheduled'>('immediate')
@@ -206,6 +207,7 @@ function NewCampaignRoute() {
       daysOfWeek: formState.isTimeBased ? formState.daysOfWeek : undefined,
       isRecurrent: formState.isTimeBased ? formState.isRecurrent : undefined,
       maxPromoCodes: undefined,
+      maxRedemptions: formState.maxRedemptions ? Number(formState.maxRedemptions) : undefined,
       maxUsesPerUser: 1,
       
       notification: formState.notificationTitle ? {
@@ -214,11 +216,10 @@ function NewCampaignRoute() {
       } : undefined,
 
       promoCode: formState.hasPromoCode ? {
-        promoTypeId: formState.promoTypeId,
-        discountType: formState.selectedPromoType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
-        discountValue: 0,
+        promoTypeId: formState.promoTypeId || undefined,
+        discountType: 'fixed',
+        discountValue: formState.promoDiscountValue ? Number(formState.promoDiscountValue) : 0,
         promoConfig: Object.keys(formState.promoConfig).length > 0 ? formState.promoConfig : undefined,
-        targetingConfiguration: {} // Simplification for now, as per plan
       } : undefined
     }
 
@@ -317,6 +318,21 @@ function NewCampaignRoute() {
                   <img src={formState.imageUrl} alt="Preview" className="h-full w-full object-cover" />
                 </div>
               )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs uppercase tracking-wide text-slate-500">
+                Max Redemptions (Optional)
+              </label>
+              <input
+                name="maxRedemptions"
+                type="number"
+                min="1"
+                value={formState.maxRedemptions}
+                onChange={handleChange}
+                placeholder="Unlimited"
+                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+              />
+              <p className="text-[10px] text-slate-500">Total number of times this campaign can be redeemed.</p>
             </div>
           </section>
         ) : null}
@@ -528,23 +544,22 @@ function NewCampaignRoute() {
                      ))}
                    </select>
                  </div>
-                 
-                 {formState.selectedPromoType?.requiresValue && (
-                   <div className="space-y-2">
-                      <label className="text-xs uppercase tracking-wide text-slate-500">
-                        {formState.selectedPromoType.valueLabel || 'Discount Value'}
-                      </label>
-                      <input
-                        name="promoDiscountValue"
-                        type="number"
-                        min="0"
-                        value={formState.promoDiscountValue}
-                        onChange={handleChange}
-                        placeholder={formState.selectedPromoType.slug === 'percentage_discount' ? '20' : '500'}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                      />
-                   </div>
-                 )}
+                                  {/* Discount value — always visible for admin (fixed discount type only) */}
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-wide text-slate-500">
+                      Discount Value (₦)
+                    </label>
+                    <input
+                      name="promoDiscountValue"
+                      type="number"
+                      min="0"
+                      value={formState.promoDiscountValue}
+                      onChange={handleChange}
+                      placeholder="500"
+                      className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                    />
+                    <p className="text-[10px] text-slate-500">Fixed amount in Naira (e.g. 500 = ₦500 off)</p>
+                  </div>
 
 
 

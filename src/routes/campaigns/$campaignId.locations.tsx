@@ -64,7 +64,7 @@ function CampaignLocationsRoute() {
 
 
   // Fetch venue details for attached venues using infinite scrolling
-  const attachedVenueIds = campaign.venueIds
+  const attachedVenueIds = campaign.venues?.map((v) => v.id) ?? []
   const venuesQuery = useInfiniteVenues()
   
   // Flatten all pages into a single array
@@ -142,7 +142,7 @@ function CampaignLocationsRoute() {
       pushToast({
         id: crypto.randomUUID(),
         title: 'Venues updated',
-        description: `${updated.venueIds.length} venues linked.`,
+        description: `${updated.venues.length} venues linked.`,
         intent: 'success',
       })
       setPendingIds('')

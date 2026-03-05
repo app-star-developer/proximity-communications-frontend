@@ -74,6 +74,75 @@ export interface EventTimeseriesResponse {
 	}>;
 }
 
+/** Venue object as returned inside a Campaign detail response */
+export interface CampaignVenue {
+	id: string;
+	name: string;
+	slug: string;
+	address?: string | null;
+	addressLine2?: string | null;
+	city?: string | null;
+	region?: string | null;
+	countryCode?: string | null;
+	postalCode?: string | null;
+	latitude?: number | null;
+	longitude?: number | null;
+	timezone?: string | null;
+	phoneNumber?: string | null;
+	email?: string | null;
+	status: "draft" | "active" | "inactive";
+	isShared: boolean;
+	venueTypeId?: string | null;
+	externalId?: string | null;
+	interiorImage?: string | null;
+	exteriorImage?: string | null;
+	invitationStatus: "pending" | "accepted" | "declined";
+	assignedAt: string;
+	respondedAt?: string | null;
+}
+
+/** Promo code object as returned inside a Campaign detail response */
+export interface CampaignPromoCode {
+	id: string;
+	code: string;
+	status: "draft" | "active" | "expired" | "archived" | "revoked";
+	discountType: "percentage" | "fixed";
+	discountValue: number;
+	maxUses?: number | null;
+	currentUses: number;
+	imageUrl?: string | null;
+	promoTypeId?: string | null;
+	promoConfig?: Record<string, unknown> | null;
+	targetingConfiguration?: Record<string, unknown> | null;
+	validFrom?: string | null;
+	validTo?: string | null;
+	claimedBy?: string | null;
+	generatedBy?: string | null;
+	sku?: string | null;
+	variants?: string[] | null;
+	size?: string | null;
+	metadata?: Record<string, unknown> | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+/** Offer object as returned inside a Campaign detail response */
+export interface CampaignOffer {
+	id: string;
+	title: string;
+	summary?: string | null;
+	terms?: string | null;
+	status: "draft" | "active" | "expired" | "archived";
+	externalProvider?: string | null;
+	externalReference?: string | null;
+	validFrom?: string | null;
+	validTo?: string | null;
+	redemptionLimit?: number | null;
+	metadata?: Record<string, unknown> | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface Campaign {
 	id: string;
 	tenantId: string;
@@ -87,25 +156,46 @@ export interface Campaign {
 		| "paused"
 		| "completed"
 		| "cancelled";
+	imageUrl?: string | null;
 	venueSource: "direct" | "platform";
+	isPlatform: boolean;
+	includeDirectVenues: boolean;
+	isOnDemand: boolean;
 	startAt?: string | null;
 	endAt?: string | null;
 	radiusMeters?: number | null;
 	timezone?: string | null;
 	budgetCents?: number | null;
-	imageUrl?: string | null;
-	venueIds: string[];
-	venues: Array<{
-		id: string;
-		name: string;
-		slug: string;
-		address?: string;
-		city?: string | null;
-		primaryType?: string | null;
-	}>;
-	totalVenuesCount: number;
+	metadata?: Record<string, unknown> | null;
+	// Time restrictions
+	isTimeBased: boolean;
+	timesOfDay?: Array<{ startTime: string; endTime: string }> | null;
+	durationMinutes?: number | null;
+	daysOfWeek?: number[] | null;
+	isRecurrent: boolean;
+	// Limits
+	maxPromoCodes?: number | null;
+	maxRedemptions?: number | null;
+	maxUsesPerUser: number;
+	// Venue targeting
 	venueFilters?: VenueFilters | null;
-	isAllVenues?: boolean;
+	totalVenuesCount: number;
+	venues: CampaignVenue[];
+	// Notification
+	notification?: {
+		title: string;
+		body?: string | null;
+		deepLinkUrl?: string | null;
+		imageUrl?: string | null;
+		actionButtons?: Record<string, unknown> | null;
+	} | null;
+	// Promo
+	promoCodes: CampaignPromoCode[];
+	offers: CampaignOffer[];
+	stats?: {
+		totalRedemptions: number;
+		totalClaims: number;
+	} | null;
 	createdAt: string;
 	updatedAt: string;
 }

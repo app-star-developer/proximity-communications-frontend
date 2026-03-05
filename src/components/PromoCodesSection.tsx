@@ -10,10 +10,12 @@ import type {
 	PromoCode,
 	PromoCodeStatus,
     PromoType,
+	Campaign,
 } from '../api/types'
 import { useUIStore } from '../state/uiStore'
 import { MediaLibrary } from './MediaLibrary'
 import { usePromoTypes } from '../hooks/useReferenceData'
+import { useCampaignDetail } from '@/hooks/useCampaigns'
 
 interface PromoCodesSectionProps {
 	campaignId: string
@@ -28,6 +30,9 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 		queryKey: ['promo-codes', campaignId],
 		queryFn: () => promoCodesApi.list(campaignId),
 	})
+
+	const {data: campaign, isLoading: _isCampaignLoading} = useCampaignDetail(campaignId)
+	
 
     const promoTypesQuery = usePromoTypes()
     const promoTypes = promoTypesQuery.data || []
@@ -177,7 +182,7 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 						in the mobile app.
 					</p>
 				</div>
-				{!showCreateForm && (
+				{/* {!showCreateForm && (
 					<button
 						type="button"
 						onClick={() => setShowCreateForm(true)}
@@ -185,12 +190,13 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 					>
 						Create Promo Code
 					</button>
-				)}
+				)} */}
 			</div>
 
 			{showCreateForm && (
 				<CreatePromoCodeForm
 					promoTypes={promoTypes}
+					campaign={campaign}
 					onSubmit={(payload) => createMutation.mutate(payload)}
 					onCancel={() => setShowCreateForm(false)}
 					isPending={createMutation.isPending}
@@ -210,6 +216,7 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 							key={promoCode.id}
 							promoCode={promoCode}
                             promoTypes={promoTypes}
+							campaign={campaign}
 							onUpdate={(payload) => handleUpdate(promoCode, payload)}
 							onDelete={() => handleDelete(promoCode)}
 							onRegenerate={() => handleRegenerate(promoCode)}
@@ -226,6 +233,7 @@ export function PromoCodesSection({ campaignId }: PromoCodesSectionProps) {
 function PromoCodeCard({
 	promoCode,
     promoTypes,
+	campaign,
 	onUpdate,
 	onDelete,
 	onRegenerate,
@@ -234,6 +242,7 @@ function PromoCodeCard({
 }: {
 	promoCode: PromoCode
     promoTypes: PromoType[]
+	campaign: Campaign | undefined
 	onUpdate: (payload: UpdatePromoCodeRequest) => void
 	onDelete: () => void
 	onRegenerate: () => void
@@ -246,7 +255,7 @@ function PromoCodeCard({
 		(!promoCode.validFrom ||
 			new Date(promoCode.validFrom) <= new Date()) &&
 		(!promoCode.validTo || new Date(promoCode.validTo) >= new Date()) &&
-		(promoCode.maxUses === null || promoCode.currentUses < promoCode.maxUses)
+		(promoCode.maxUses === null || promoCode.currentUses < (promoCode.maxUses || 0))
 
     const promoType = promoTypes.find(t => t.id === promoCode.promoTypeId)
 
@@ -255,6 +264,7 @@ function PromoCodeCard({
 			<EditPromoCodeForm
 				promoCode={promoCode}
                 promoTypes={promoTypes}
+				campaign={campaign}
 				onSubmit={(payload) => {
 					onUpdate(payload)
 					setIsEditing(false)
@@ -353,11 +363,13 @@ function PromoCodeCard({
 
 function CreatePromoCodeForm({
     promoTypes,
+	campaign: _campaign,
 	onSubmit,
 	onCancel,
 	isPending,
 }: {
     promoTypes: PromoType[]
+	campaign: Campaign | undefined
 	onSubmit: (payload: CreatePromoCodeRequest) => void
 	onCancel: () => void
 	isPending: boolean
@@ -580,12 +592,14 @@ function CreatePromoCodeForm({
 function EditPromoCodeForm({
 	promoCode,
     promoTypes,
+	campaign: _campaign,
 	onSubmit,
 	onCancel,
 	isPending,
 }: {
 	promoCode: PromoCode
     promoTypes: PromoType[]
+	campaign: Campaign | undefined
 	onSubmit: (payload: UpdatePromoCodeRequest) => void
 	onCancel: () => void
 	isPending: boolean
