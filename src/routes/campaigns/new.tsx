@@ -11,9 +11,8 @@ import type { QueryClient } from '@tanstack/react-query'
 import { requireAuth } from '../../utils/requireAuth'
 import { campaignsApi, type CreateCampaignPayload } from '../../api/modules/campaigns'
 import { queryKeys } from '../../api/queryKeys'
-import type { ApiErrorResponse, Campaign, VenueFilters, PromoType } from '../../api/types'
+import type { ApiErrorResponse, VenueFilters, PromoType } from '../../api/types'
 import { useUIStore } from '../../state/uiStore'
-import { useVenueOptions } from '../../hooks/useVenues'
 import { MediaLibrary } from '../../components/MediaLibrary'
 import { useCountries, useStates, useLgas, useVenueTypes, usePromoTypes } from '../../hooks/useReferenceData'
 
@@ -87,7 +86,6 @@ function NewCampaignRoute() {
   const timezoneId = useId()
   const radiusId = useId()
   const budgetId = useId()
-  const venueSearchId = useId()
   const imageUrlId = useId()
 
   const [step, setStep] = useState(0)
@@ -95,45 +93,33 @@ function NewCampaignRoute() {
     name: '',
     description: '',
     // status is inferred: 'active' if immediate, 'scheduled' if future, default to draft until launched
-    status: 'draft' as Campaign['status'],
-    venueSource: 'direct' as 'direct' | 'platform',
+    venueIds: [] as string[],
+    venueFilters: {} as VenueFilters,
+    imageUrl: '',
     startAt: '',
     endAt: '',
     timezone: '',
     radiusMeters: '',
     budgetCents: '',
-    venueIds: [] as string[],
-    venueFilters: {} as VenueFilters,
-    imageUrl: '',
-    // Promo Code State
-    hasPromoCode: false,
-    promoCode: '',
-    promoDiscountType: 'fixed' as 'fixed' | 'percentage',
-    promoDiscountValue: '',
+    initialMode: 'ids' as 'ids' | 'filters' | 'all',
+    venueSource: 'platform' as 'direct' | 'platform', // Default explicitly to platform
+    includeDirectVenues: false,
+    hasPromoCode: true,
     promoTypeId: '',
+    promoDiscountValue: '',
+    promoConfig: {} as Record<string, any>,
     selectedPromoType: undefined as PromoType | undefined,
-    // New fields for promoConfig
-    menuItemIds: [] as string[],
-    promoConfig: {} as any,
-    // Platform Admin Fields
+    // Time restriction fields
     isTimeBased: false,
-    timesOfDay: [{ startTime: '08:00', endTime: '18:00' }],
-    daysOfWeek: [1, 2, 3, 4, 5],
+    timesOfDay: [] as Array<{ startTime: string; endTime: string }>,
+    daysOfWeek: [] as number[],
     isRecurrent: true,
-    maxRedemptions: '',
-    codePrefix: '',
-    maxUses: '',
     notificationTitle: '',
     notificationBody: '',
-    isAllVenues: false,
   })
   
   const [scheduleMode, setScheduleMode] = useState<'immediate' | 'scheduled'>('immediate')
   const [showMediaLibrary, setShowMediaLibrary] = useState(false)
-  const [venueSearch, setVenueSearch] = useState('')
-  
-  const venueOptionsQuery = useVenueOptions(venueSearch || '')
-  const venueOptions = venueOptionsQuery.data?.data ?? []
 
   const countriesQuery = useCountries()
   const promoTypesQuery = usePromoTypes()
@@ -181,18 +167,6 @@ function NewCampaignRoute() {
     }))
   }
 
-  const toggleVenueSelection = (venueId: string) => {
-    setFormState((previous) => {
-      const isSelected = previous.venueIds.includes(venueId)
-      return {
-        ...previous,
-        venueIds: isSelected
-          ? previous.venueIds.filter((id) => id !== venueId)
-          : [...previous.venueIds, venueId],
-      }
-    })
-  }
-
   const nextStep = () => setStep((current) => Math.min(current + 1, STEPS.length - 1))
   const previousStep = () => setStep((current) => Math.max(current - 1, 0))
 
@@ -221,10 +195,9 @@ function NewCampaignRoute() {
       endAt: formState.endAt ? new Date(formState.endAt).toISOString() : undefined,
       radiusMeters: formState.radiusMeters ? Number(formState.radiusMeters) : undefined,
       budgetCents: formState.budgetCents ? Number(formState.budgetCents) : undefined,
-      venueIds: formState.venueSource === 'direct' ? formState.venueIds : undefined,
-      venueFilters: formState.venueSource === 'platform' && !formState.isAllVenues ? filtersPayload : undefined,
-      venueSource: formState.venueSource,
-      isAllVenues: formState.venueSource === 'platform' ? formState.isAllVenues : undefined,
+      venueFilters: filtersPayload,
+      venueSource: 'platform',
+      includeDirectVenues: formState.includeDirectVenues,
       imageUrl: formState.imageUrl || undefined,
       
       // Platform Admin Fields
@@ -233,7 +206,6 @@ function NewCampaignRoute() {
       daysOfWeek: formState.isTimeBased ? formState.daysOfWeek : undefined,
       isRecurrent: formState.isTimeBased ? formState.isRecurrent : undefined,
       maxPromoCodes: undefined,
-      maxRedemptions: formState.maxRedemptions ? Number(formState.maxRedemptions) : undefined,
       maxUsesPerUser: 1,
       
       notification: formState.notificationTitle ? {
@@ -242,13 +214,9 @@ function NewCampaignRoute() {
       } : undefined,
 
       promoCode: formState.hasPromoCode ? {
-        codePrefix: formState.codePrefix || undefined,
-        code: formState.promoCode || undefined,
         promoTypeId: formState.promoTypeId,
         discountType: formState.selectedPromoType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
-        discountValue: formState.promoDiscountValue ? Number(formState.promoDiscountValue) : 0,
-        maxUses: formState.maxUses ? Number(formState.maxUses) : undefined,
-        menuItemIds: formState.menuItemIds.length > 0 ? formState.menuItemIds : undefined,
+        discountValue: 0,
         promoConfig: Object.keys(formState.promoConfig).length > 0 ? formState.promoConfig : undefined,
         targetingConfiguration: {} // Simplification for now, as per plan
       } : undefined
@@ -431,8 +399,7 @@ function NewCampaignRoute() {
               </div>
             )}
 
-            {formState.venueSource === 'platform' && (
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 mt-4">
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 mt-4">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-sm font-semibold text-white">Time Restrictions</h3>
@@ -505,7 +472,6 @@ function NewCampaignRoute() {
                   </div>
                 )}
               </div>
-            )}
              <div className="space-y-2 pt-2">
               <label htmlFor={timezoneId} className="text-xs uppercase tracking-wide text-slate-500">
                 Time zone
@@ -533,59 +499,12 @@ function NewCampaignRoute() {
                <div className="flex items-center justify-between">
                  <div>
                    <h3 className="text-sm font-semibold text-white">Attach Promo Code</h3>
-                   <p className="text-xs text-slate-400">Generate a unique code for this campaign</p>
+                   <p className="text-xs text-slate-400">Attach a promotion type to this campaign</p>
                  </div>
-                 <label className="relative inline-flex items-center cursor-pointer">
-                   <input 
-                      type="checkbox" 
-                      checked={formState.hasPromoCode} 
-                      onChange={(e) => setFormState(prev => ({ ...prev, hasPromoCode: e.target.checked }))}
-                      className="sr-only peer" 
-                    />
-                   <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
-                 </label>
                </div>
-             </div>
 
              {formState.hasPromoCode && (
                <div className="grid gap-4 md:grid-cols-2">
-                 <div className="space-y-2">
-                   <label className="text-xs uppercase tracking-wide text-slate-500">Code (Optional)</label>
-                   <input
-                     name="promoCode"
-                     value={formState.promoCode}
-                     onChange={handleChange}
-                     placeholder="e.g. SUMMER2024 (Leave empty to auto-generate)"
-                     className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                   />
-                 </div>
-                 <div className="space-y-2">
-                   <label className="text-xs uppercase tracking-wide text-slate-500">Code Prefix</label>
-                   <input
-                     name="codePrefix"
-                     value={formState.codePrefix}
-                     onChange={handleChange}
-                     placeholder="e.g. LAG25"
-                     maxLength={6}
-                     className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                   />
-                 </div>
-                 <div className="space-y-2 md:col-span-2">
-                   <h4 className="text-sm font-semibold text-white mt-1 mb-2">Limitations & Scaling</h4>
-                   <div className="grid gap-4 md:grid-cols-2">
-                     <div className="space-y-2">
-                       <label className="text-xs uppercase tracking-wide text-slate-500">Max Redemptions</label>
-                       <input
-                         name="maxRedemptions"
-                         type="number"
-                         value={formState.maxRedemptions}
-                         onChange={handleChange}
-                         placeholder="5000"
-                         className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                       />
-                     </div>
-                   </div>
-                 </div>
                  <div className="space-y-2">
                    <label className="text-xs uppercase tracking-wide text-slate-500">Promotion Type</label>
                    <select
@@ -627,54 +546,7 @@ function NewCampaignRoute() {
                    </div>
                  )}
 
-                  {formState.selectedPromoType?.slug === 'price-discount' && (
-                    <div className="md:col-span-2 space-y-2">
-                       <label className="text-xs uppercase tracking-wide text-slate-500">Menu Item IDs (Optional, comma-separated)</label>
-                       <input
-                         name="menuItemIdsRaw"
-                         onChange={(e) => {
-                            const ids = e.target.value.split(',').map(id => id.trim()).filter(Boolean)
-                            setFormState(prev => ({ ...prev, menuItemIds: ids }))
-                         }}
-                         placeholder="UUID-1, UUID-2..."
-                         className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                       />
-                       <p className="text-[10px] text-slate-500 italic">Leave empty for a general venue-wide discount.</p>
-                    </div>
-                  )}
 
-                  {formState.selectedPromoType?.slug === 'combo-offer' && (
-                    <div className="md:col-span-2 grid gap-4 md:grid-cols-3 bg-slate-900/40 p-4 rounded-xl border border-slate-800">
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-wide text-slate-500">Buy Product</label>
-                        <input
-                          value={formState.promoConfig.buyProduct || ''}
-                          onChange={(e) => setFormState(prev => ({ ...prev, promoConfig: { ...prev.promoConfig, buyProduct: e.target.value } }))}
-                          placeholder="Heineken 33cl"
-                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-wide text-slate-500">Get Product</label>
-                        <input
-                          value={formState.promoConfig.getProduct || ''}
-                          onChange={(e) => setFormState(prev => ({ ...prev, promoConfig: { ...prev.promoConfig, getProduct: e.target.value } }))}
-                          placeholder="Heineken 33cl"
-                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-wide text-slate-500">% Discount on Gift</label>
-                        <input
-                          type="number"
-                          value={formState.promoConfig.getDiscount || ''}
-                          onChange={(e) => setFormState(prev => ({ ...prev, promoConfig: { ...prev.promoConfig, getDiscount: Number(e.target.value) } }))}
-                          placeholder="100"
-                          className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200"
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   {formState.selectedPromoType?.slug === 'time-based' && (
                     <div className="md:col-span-2 space-y-2">
@@ -697,6 +569,7 @@ function NewCampaignRoute() {
                  )}
                </div>
              )}
+            </div>
           </section>
         ) : null}
 
@@ -732,8 +605,7 @@ function NewCampaignRoute() {
                 className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
               />
             </div>
-            {formState.venueSource === 'platform' && (
-              <div className="space-y-2 md:col-span-2 mt-4 pt-4 border-t border-slate-800">
+            <div className="space-y-2 md:col-span-2 mt-4 pt-4 border-t border-slate-800">
                 <h4 className="text-sm font-semibold text-white">Geofence Notification</h4>
                 <p className="text-xs text-slate-400">Sent when users enter the radius of a targeted venue.</p>
                 <div className="grid gap-4 md:grid-cols-2 mt-2">
@@ -763,127 +635,41 @@ function NewCampaignRoute() {
                    </div>
                 </div>
               </div>
-            )}
-          </section>
+           </section>
         ) : null}
 
         {step === 4 ? (
           <section className="space-y-4">
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-              <label className="text-xs uppercase tracking-wide text-slate-500 mb-3 block">
-                Venue selection mode
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="venueSource"
-                    value="direct"
-                    checked={formState.venueSource === 'direct'}
-                    onChange={() => setFormState(prev => ({ ...prev, venueSource: 'direct' }))}
-                    className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
-                  />
-                  <span className="text-sm text-slate-200">Specific Venues (Direct)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="venueSource"
-                    value="platform"
-                    checked={formState.venueSource === 'platform'}
-                    onChange={() => setFormState(prev => ({ ...prev, venueSource: 'platform' }))}
-                    className="h-4 w-4 text-cyan-500 focus:ring-cyan-500/40"
-                  />
-                  <span className="text-sm text-slate-200">Platform Filters (Public)</span>
-                </label>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Targeting Settings</h3>
+                  <p className="text-xs text-slate-400">Configure which venues should participate in this campaign.</p>
+                </div>
               </div>
             </div>
 
-            {formState.venueSource === 'direct' ? (
-              <div className="space-y-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <label htmlFor={venueSearchId} className="text-xs uppercase tracking-wide text-slate-500">
-                      Search venues
-                    </label>
-                    <p className="text-xs text-slate-500">
-                      Select one or more venues. Create new venues from the Venues dashboard first if needed.
-                    </p>
-                  </div>
-                  <input
-                    id={venueSearchId}
-                    value={venueSearch}
-                    onChange={(event) => setVenueSearch(event.target.value)}
-                    placeholder="Search by name"
-                    className="w-full max-w-xs rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-                  />
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-slate-800 bg-slate-950/60 p-4 transition hover:border-cyan-500/40 hover:bg-slate-900/60">
+                <input
+                  type="checkbox"
+                  checked={formState.includeDirectVenues}
+                  onChange={(e) => setFormState(prev => ({ ...prev, includeDirectVenues: e.target.checked }))}
+                  className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
+                />
+                <div>
+                  <span className="text-sm font-semibold text-white">Include Venues created directly by Venue Owners?</span>
+                  <p className="text-xs text-slate-400">If checked, this campaign will also include venues created directly on the platform by owners.</p>
                 </div>
-                <div className="space-y-2">
-                  {venueOptionsQuery.isLoading ? (
-                    <p className="text-xs text-slate-500">Loading venues…</p>
-                  ) : venueOptions.length === 0 ? (
-                    <p className="text-xs text-slate-500">
-                      No venues found. Try adjusting your search or create a new venue first.
-                    </p>
-                  ) : (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {venueOptions.map((venue) => {
-                        const checked = formState.venueIds.includes(venue.id)
-                        return (
-                          <label
-                            key={venue.id}
-                            className={`cursor-pointer rounded-xl border px-4 py-3 text-sm transition ${
-                              checked
-                                ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-100'
-                                : 'border-slate-800 bg-slate-950/60 text-slate-300 hover:border-cyan-500/40 hover:text-cyan-200'
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleVenueSelection(venue.id)}
-                                className="mt-1 h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
-                              />
-                              <div>
-                                <p className="font-semibold text-white">{venue.name}</p>
-                                <p className="text-xs text-slate-400">
-                                  {venue.city ?? 'Unknown city'} • {venue.countryCode ?? '??'}
-                                </p>
-                              </div>
-                            </div>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-slate-800 bg-slate-950/60 p-4 transition hover:border-cyan-500/40 hover:bg-slate-900/60">
-                  <input
-                    type="checkbox"
-                    checked={formState.isAllVenues}
-                    onChange={(e) => setFormState(prev => ({ ...prev, isAllVenues: e.target.checked }))}
-                    className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
-                  />
-                  <div>
-                    <span className="text-sm font-semibold text-white">Target All Venues</span>
-                    <p className="text-xs text-slate-400">Indiscriminately target every single active venue on the platform. Disables specific filters.</p>
-                  </div>
-                </label>
-                
-                {!formState.isAllVenues && (
-                  <VenueFiltersForm
-                    filters={formState.venueFilters}
-                    onFiltersChange={(filters) =>
-                      setFormState((prev) => ({ ...prev, venueFilters: filters }))
-                    }
-                  />
-                )}
-              </div>
-            )}
+              </label>
+              
+              <VenueFiltersForm
+                filters={formState.venueFilters}
+                onFiltersChange={(filters) =>
+                  setFormState((prev) => ({ ...prev, venueFilters: filters }))
+                }
+              />
+            </div>
           </section>
         ) : null}
 
@@ -907,24 +693,22 @@ function NewCampaignRoute() {
                 <strong>Radius:</strong> {formState.radiusMeters || 'Not set'}
               </li>
               <li>
-                <strong>Venues:</strong>{' '}
-                {formState.venueSource === 'direct'
-                  ? `${formState.venueIds.length} selected`
-                  : 'Platform Filters'}
+                <strong>Venues:</strong> Platform Filters
               </li>
-              {formState.venueSource === 'platform' && (
-                <li className="text-xs text-slate-400 pl-4">
-                  Filters: {Object.keys(formState.venueFilters).length > 0
-                    ? Object.entries(formState.venueFilters)
-                        .filter(([_, v]) => v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : true))
-                        .map(([k]) => k)
-                        .join(', ')
-                    : 'None'}
-                </li>
-              )}
+              <li className="text-xs text-slate-400 pl-4">
+                Include Direct Venues: {formState.includeDirectVenues ? 'Yes' : 'No'}
+              </li>
+              <li className="text-xs text-slate-400 pl-4">
+                Filters: {Object.keys(formState.venueFilters).length > 0
+                  ? Object.entries(formState.venueFilters)
+                      .filter(([_, v]) => v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : true))
+                      .map(([k]) => k)
+                      .join(', ')
+                  : 'None'}
+              </li>
               {formState.hasPromoCode && (
                  <li>
-                   <strong>Promo Code:</strong> {formState.promoCode || '(Auto-generated)'} • {formState.promoDiscountValue} {formState.promoDiscountType === 'percentage' ? '%' : 'credits'} off
+                   <strong>Promo Type:</strong> {formState.selectedPromoType?.name || 'Selected'}
                  </li>
               )}
             </ul>
@@ -947,12 +731,8 @@ function NewCampaignRoute() {
               (step === 0 && !formState.name) ||
               (step === 2 &&
                 formState.hasPromoCode &&
-                (!formState.selectedPromoType || (formState.selectedPromoType.requiresValue && (!formState.promoDiscountValue || Number(formState.promoDiscountValue) <= 0)))) ||
+                (!formState.selectedPromoType)) ||
               (step === 4 &&
-                formState.venueSource === 'direct' &&
-                formState.venueIds.length === 0) ||
-              (step === 4 &&
-                formState.venueSource === 'platform' &&
                 Object.keys(formState.venueFilters).length === 0)
             }
             className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 disabled:cursor-not-allowed disabled:bg-cyan-500/50"
@@ -973,7 +753,6 @@ function slugify(value: string) {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
 }
-
 
 const GEOPOLITICAL_ZONES = [
   { value: 'north_central', label: 'North Central' },
@@ -1084,19 +863,36 @@ function VenueFiltersForm({
 
          <div className="space-y-2">
           <label className="text-xs uppercase tracking-wide text-slate-500">Venue Type</label>
-          <select
-            name="venueTypeId"
-            value={filters.venueTypeId ?? ''}
-            onChange={handleChange}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
-          >
-            <option value="">Select Type...</option>
-            {venueTypesQuery.data?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {venueTypesQuery.data?.map((t) => {
+              const isSelected = filters.venueTypeId?.includes(t.id)
+              return (
+                <label
+                  key={t.id}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition ${
+                    isSelected
+                      ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200'
+                      : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected || false}
+                    onChange={(e) => {
+                      const current = filters.venueTypeId || []
+                      if (e.target.checked) {
+                        onFiltersChange({ ...filters, venueTypeId: [...current, t.id] })
+                      } else {
+                        onFiltersChange({ ...filters, venueTypeId: current.filter(id => id !== t.id) })
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  {t.name}
+                </label>
+              )
+            })}
+          </div>
         </div>
         
         <div className="space-y-2">

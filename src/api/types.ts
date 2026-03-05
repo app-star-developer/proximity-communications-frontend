@@ -473,7 +473,7 @@ export interface VenueFilters {
 		| "south_east"
 		| "south_south"
 		| "south_west";
-	venueTypeId?: string;
+	venueTypeId?: string[];
 }
 
 // Campaign Types Enhancement
@@ -489,7 +489,7 @@ export interface CreateCampaignRequest {
 	imageUrl?: string;
 	venueIds?: string[];
 	venueFilters?: VenueFilters;
-	isAllVenues?: boolean;
+	includeDirectVenues?: boolean;
 	status?: Campaign["status"];
 	
 	// Time Restrictions
