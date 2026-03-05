@@ -115,6 +115,17 @@ function NewCampaignRoute() {
     // New fields for promoConfig
     menuItemIds: [] as string[],
     promoConfig: {} as any,
+    // Platform Admin Fields
+    isTimeBased: false,
+    timesOfDay: [{ startTime: '08:00', endTime: '18:00' }],
+    daysOfWeek: [1, 2, 3, 4, 5],
+    isRecurrent: true,
+    maxRedemptions: '',
+    codePrefix: '',
+    maxUses: '',
+    notificationTitle: '',
+    notificationBody: '',
+    isAllVenues: false,
   })
   
   const [scheduleMode, setScheduleMode] = useState<'immediate' | 'scheduled'>('immediate')
@@ -211,15 +222,32 @@ function NewCampaignRoute() {
       radiusMeters: formState.radiusMeters ? Number(formState.radiusMeters) : undefined,
       budgetCents: formState.budgetCents ? Number(formState.budgetCents) : undefined,
       venueIds: formState.venueSource === 'direct' ? formState.venueIds : undefined,
-      venueFilters: formState.venueSource === 'platform' ? filtersPayload : undefined,
+      venueFilters: formState.venueSource === 'platform' && !formState.isAllVenues ? filtersPayload : undefined,
       venueSource: formState.venueSource,
-      isAllVenues: false, // Deprecated/Unused with new flow, usually
+      isAllVenues: formState.venueSource === 'platform' ? formState.isAllVenues : undefined,
       imageUrl: formState.imageUrl || undefined,
+      
+      // Platform Admin Fields
+      isTimeBased: formState.isTimeBased || undefined,
+      timesOfDay: formState.isTimeBased ? formState.timesOfDay : undefined,
+      daysOfWeek: formState.isTimeBased ? formState.daysOfWeek : undefined,
+      isRecurrent: formState.isTimeBased ? formState.isRecurrent : undefined,
+      maxPromoCodes: undefined,
+      maxRedemptions: formState.maxRedemptions ? Number(formState.maxRedemptions) : undefined,
+      maxUsesPerUser: 1,
+      
+      notification: formState.notificationTitle ? {
+        title: formState.notificationTitle,
+        body: formState.notificationBody || undefined,
+      } : undefined,
+
       promoCode: formState.hasPromoCode ? {
+        codePrefix: formState.codePrefix || undefined,
         code: formState.promoCode || undefined,
         promoTypeId: formState.promoTypeId,
         discountType: formState.selectedPromoType?.slug?.includes('percentage') ? 'percentage' : 'fixed',
         discountValue: formState.promoDiscountValue ? Number(formState.promoDiscountValue) : 0,
+        maxUses: formState.maxUses ? Number(formState.maxUses) : undefined,
         menuItemIds: formState.menuItemIds.length > 0 ? formState.menuItemIds : undefined,
         promoConfig: Object.keys(formState.promoConfig).length > 0 ? formState.promoConfig : undefined,
         targetingConfiguration: {} // Simplification for now, as per plan
@@ -402,7 +430,83 @@ function NewCampaignRoute() {
                 </div>
               </div>
             )}
-             <div className="space-y-2">
+
+            {formState.venueSource === 'platform' && (
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 mt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Time Restrictions</h3>
+                    <p className="text-xs text-slate-400">Enforce Specific Days and Hours</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={formState.isTimeBased} 
+                      onChange={(e) => setFormState(prev => ({ ...prev, isTimeBased: e.target.checked }))}
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-cyan-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                  </label>
+                </div>
+
+                {formState.isTimeBased && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                       <label className="text-xs uppercase tracking-wide text-slate-500">Days of Week (0=Sun, 6=Sat)</label>
+                       <input
+                         value={formState.daysOfWeek.join(', ')}
+                         onChange={(e) => {
+                            const days = e.target.value.split(',').map(d => parseInt(d.trim(), 10)).filter(d => !isNaN(d) && d >= 0 && d <= 6)
+                            setFormState(prev => ({ ...prev, daysOfWeek: days }))
+                         }}
+                         placeholder="1, 2, 3, 4, 5"
+                         className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                       />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                         <label className="text-xs uppercase tracking-wide text-slate-500">Start Time (HH:mm)</label>
+                         <input
+                           type="time"
+                           value={formState.timesOfDay[0]?.startTime || ''}
+                           onChange={(e) => {
+                              const newTimes = [...formState.timesOfDay]
+                              if (!newTimes[0]) newTimes[0] = { startTime: '', endTime: '' }
+                              newTimes[0].startTime = e.target.value
+                              setFormState(prev => ({ ...prev, timesOfDay: newTimes }))
+                           }}
+                           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                         />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-xs uppercase tracking-wide text-slate-500">End Time (HH:mm)</label>
+                         <input
+                           type="time"
+                           value={formState.timesOfDay[0]?.endTime || ''}
+                           onChange={(e) => {
+                              const newTimes = [...formState.timesOfDay]
+                              if (!newTimes[0]) newTimes[0] = { startTime: '', endTime: '' }
+                              newTimes[0].endTime = e.target.value
+                              setFormState(prev => ({ ...prev, timesOfDay: newTimes }))
+                           }}
+                           className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                         />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer mt-2">
+                      <input
+                        type="checkbox"
+                        checked={formState.isRecurrent}
+                        onChange={(e) => setFormState(prev => ({ ...prev, isRecurrent: e.target.checked }))}
+                        className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
+                      />
+                      <span className="text-sm text-slate-300">Recurrent Daily (resets redemptions)</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
+             <div className="space-y-2 pt-2">
               <label htmlFor={timezoneId} className="text-xs uppercase tracking-wide text-slate-500">
                 Time zone
               </label>
@@ -454,6 +558,33 @@ function NewCampaignRoute() {
                      placeholder="e.g. SUMMER2024 (Leave empty to auto-generate)"
                      className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
                    />
+                 </div>
+                 <div className="space-y-2">
+                   <label className="text-xs uppercase tracking-wide text-slate-500">Code Prefix</label>
+                   <input
+                     name="codePrefix"
+                     value={formState.codePrefix}
+                     onChange={handleChange}
+                     placeholder="e.g. LAG25"
+                     maxLength={6}
+                     className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                   />
+                 </div>
+                 <div className="space-y-2 md:col-span-2">
+                   <h4 className="text-sm font-semibold text-white mt-1 mb-2">Limitations & Scaling</h4>
+                   <div className="grid gap-4 md:grid-cols-2">
+                     <div className="space-y-2">
+                       <label className="text-xs uppercase tracking-wide text-slate-500">Max Redemptions</label>
+                       <input
+                         name="maxRedemptions"
+                         type="number"
+                         value={formState.maxRedemptions}
+                         onChange={handleChange}
+                         placeholder="5000"
+                         className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                       />
+                     </div>
+                   </div>
                  </div>
                  <div className="space-y-2">
                    <label className="text-xs uppercase tracking-wide text-slate-500">Promotion Type</label>
@@ -601,6 +732,38 @@ function NewCampaignRoute() {
                 className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
               />
             </div>
+            {formState.venueSource === 'platform' && (
+              <div className="space-y-2 md:col-span-2 mt-4 pt-4 border-t border-slate-800">
+                <h4 className="text-sm font-semibold text-white">Geofence Notification</h4>
+                <p className="text-xs text-slate-400">Sent when users enter the radius of a targeted venue.</p>
+                <div className="grid gap-4 md:grid-cols-2 mt-2">
+                   <div className="space-y-2">
+                     <label className="text-xs uppercase tracking-wide text-slate-500">Notification Title</label>
+                     <input
+                       name="notificationTitle"
+                       value={formState.notificationTitle}
+                       onChange={handleChange}
+                       maxLength={65}
+                       placeholder="Tech Week Exclusive! 🚀"
+                       className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                     />
+                     <span className="text-[10px] text-slate-500">Max 65 characters</span>
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-xs uppercase tracking-wide text-slate-500">Notification Body</label>
+                     <input
+                       name="notificationBody"
+                       value={formState.notificationBody}
+                       onChange={handleChange}
+                       maxLength={240}
+                       placeholder="Step inside to claim your 25% discount on all drinks..."
+                       className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                     />
+                     <span className="text-[10px] text-slate-500">Max 240 characters</span>
+                   </div>
+                </div>
+              </div>
+            )}
           </section>
         ) : null}
 
@@ -697,12 +860,29 @@ function NewCampaignRoute() {
                 </div>
               </div>
             ) : (
-              <VenueFiltersForm
-                filters={formState.venueFilters}
-                onFiltersChange={(filters) =>
-                  setFormState((prev) => ({ ...prev, venueFilters: filters }))
-                }
-              />
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-slate-800 bg-slate-950/60 p-4 transition hover:border-cyan-500/40 hover:bg-slate-900/60">
+                  <input
+                    type="checkbox"
+                    checked={formState.isAllVenues}
+                    onChange={(e) => setFormState(prev => ({ ...prev, isAllVenues: e.target.checked }))}
+                    className="h-4 w-4 rounded border border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40"
+                  />
+                  <div>
+                    <span className="text-sm font-semibold text-white">Target All Venues</span>
+                    <p className="text-xs text-slate-400">Indiscriminately target every single active venue on the platform. Disables specific filters.</p>
+                  </div>
+                </label>
+                
+                {!formState.isAllVenues && (
+                  <VenueFiltersForm
+                    filters={formState.venueFilters}
+                    onFiltersChange={(filters) =>
+                      setFormState((prev) => ({ ...prev, venueFilters: filters }))
+                    }
+                  />
+                )}
+              </div>
             )}
           </section>
         ) : null}

@@ -491,14 +491,35 @@ export interface CreateCampaignRequest {
 	venueFilters?: VenueFilters;
 	isAllVenues?: boolean;
 	status?: Campaign["status"];
+	
+	// Time Restrictions
+	isTimeBased?: boolean;
+	timesOfDay?: Array<{ startTime: string; endTime: string }>;
+	daysOfWeek?: number[];
+	isRecurrent?: boolean;
+	
+	// Limitations & Scaling
+	maxPromoCodes?: number;
+	maxRedemptions?: number;
+	maxUsesPerUser?: number;
+	
+	// Promo Code
 	promoCode?: CreateCampaignPromoCodeRequest;
+
+	// Notification
+	notification?: {
+		title: string;
+		body?: string;
+	};
 }
 
 export interface CreateCampaignPromoCodeRequest {
+	codePrefix?: string;
 	code?: string;
 	promoTypeId?: string;
 	discountType: "percentage" | "fixed";
 	discountValue: number;
+	maxUses?: number;
 	menuItemIds?: string[];
 	promoConfig?: Record<string, unknown>;
 	targetingConfiguration?: Record<string, unknown>;

@@ -204,21 +204,21 @@ export interface FileRoutesByFullPath {
   '/campaigns/new': typeof CampaignsNewRoute
   '/dashboard/audience': typeof DashboardAudienceRoute
   '/platform/$tenantId': typeof PlatformTenantIdRoute
-  '/audience/': typeof AudienceIndexRoute
-  '/campaigns/': typeof CampaignsIndexRoute
+  '/audience': typeof AudienceIndexRoute
+  '/campaigns': typeof CampaignsIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
-  '/geofencing/': typeof GeofencingIndexRoute
-  '/notifications/': typeof NotificationsIndexRoute
+  '/geofencing': typeof GeofencingIndexRoute
+  '/notifications': typeof NotificationsIndexRoute
   '/campaigns/$campaignId/edit': typeof CampaignsCampaignIdEditRoute
   '/campaigns/$campaignId/locations': typeof CampaignsCampaignIdLocationsRoute
   '/dashboard/venues/new': typeof DashboardVenuesNewRoute
   '/platform/tenants/$tenantId': typeof PlatformTenantsTenantIdRouteWithChildren
   '/platform/tenants/new': typeof PlatformTenantsNewRoute
-  '/dashboard/venues/': typeof DashboardVenuesIndexRoute
-  '/platform/tenants/': typeof PlatformTenantsIndexRoute
+  '/dashboard/venues': typeof DashboardVenuesIndexRoute
+  '/platform/tenants': typeof PlatformTenantsIndexRoute
   '/platform/tenants/$tenantId/edit': typeof PlatformTenantsTenantIdEditRoute
   '/tenants/$tenantId/users/invite': typeof TenantsTenantIdUsersInviteRoute
-  '/tenants/$tenantId/users/': typeof TenantsTenantIdUsersIndexRoute
+  '/tenants/$tenantId/users': typeof TenantsTenantIdUsersIndexRoute
   '/tenants/$tenantId/users/$userId/edit': typeof TenantsTenantIdUsersUserIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -299,21 +299,21 @@ export interface FileRouteTypes {
     | '/campaigns/new'
     | '/dashboard/audience'
     | '/platform/$tenantId'
-    | '/audience/'
-    | '/campaigns/'
+    | '/audience'
+    | '/campaigns'
     | '/dashboard/'
-    | '/geofencing/'
-    | '/notifications/'
+    | '/geofencing'
+    | '/notifications'
     | '/campaigns/$campaignId/edit'
     | '/campaigns/$campaignId/locations'
     | '/dashboard/venues/new'
     | '/platform/tenants/$tenantId'
     | '/platform/tenants/new'
-    | '/dashboard/venues/'
-    | '/platform/tenants/'
+    | '/dashboard/venues'
+    | '/platform/tenants'
     | '/platform/tenants/$tenantId/edit'
     | '/tenants/$tenantId/users/invite'
-    | '/tenants/$tenantId/users/'
+    | '/tenants/$tenantId/users'
     | '/tenants/$tenantId/users/$userId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -464,14 +464,14 @@ declare module '@tanstack/react-router' {
     '/notifications/': {
       id: '/notifications/'
       path: '/notifications'
-      fullPath: '/notifications/'
+      fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/geofencing/': {
       id: '/geofencing/'
       path: '/geofencing'
-      fullPath: '/geofencing/'
+      fullPath: '/geofencing'
       preLoaderRoute: typeof GeofencingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -485,14 +485,14 @@ declare module '@tanstack/react-router' {
     '/campaigns/': {
       id: '/campaigns/'
       path: '/campaigns'
-      fullPath: '/campaigns/'
+      fullPath: '/campaigns'
       preLoaderRoute: typeof CampaignsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audience/': {
       id: '/audience/'
       path: '/audience'
-      fullPath: '/audience/'
+      fullPath: '/audience'
       preLoaderRoute: typeof AudienceIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -534,14 +534,14 @@ declare module '@tanstack/react-router' {
     '/platform/tenants/': {
       id: '/platform/tenants/'
       path: '/platform/tenants'
-      fullPath: '/platform/tenants/'
+      fullPath: '/platform/tenants'
       preLoaderRoute: typeof PlatformTenantsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/venues/': {
       id: '/dashboard/venues/'
       path: '/venues'
-      fullPath: '/dashboard/venues/'
+      fullPath: '/dashboard/venues'
       preLoaderRoute: typeof DashboardVenuesIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
@@ -583,7 +583,7 @@ declare module '@tanstack/react-router' {
     '/tenants/$tenantId/users/': {
       id: '/tenants/$tenantId/users/'
       path: '/tenants/$tenantId/users'
-      fullPath: '/tenants/$tenantId/users/'
+      fullPath: '/tenants/$tenantId/users'
       preLoaderRoute: typeof TenantsTenantIdUsersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
